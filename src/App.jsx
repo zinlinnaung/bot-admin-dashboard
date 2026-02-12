@@ -5,7 +5,8 @@ import Deposits from "./pages/Deposits";
 import Withdrawals from "./pages/Withdrawals";
 import Users from "./pages/Users";
 import Products from "./pages/Products";
-import DiceGame from "./pages/HighLowGame";
+
+import HighLowGame from "./pages/HighLowGame";
 
 function App() {
   return (
@@ -23,7 +24,7 @@ function App() {
         </Route>
 
         {/* This route is outside, so it will be a clean, blank page */}
-        <Route path="/game" element={<DiceGame />} />
+        <Route path="/game" element={<HighLowGame />} />
       </Routes>
     </Router>
   );
