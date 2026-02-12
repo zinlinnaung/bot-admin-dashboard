@@ -26,12 +26,12 @@ const HighLowGame = () => {
   }, []);
 
   const fetchInitialData = async () => {
-    const telegramId = tg?.initDataUnsafe?.user?.id;
+    const telegramId = tg?.initDataUnsafe?.user?.id || "1776339525"; // Fallback ID for testing
 
     try {
       console.log("Fetching for ID:", telegramId); // Debug လုပ်ရန်
       const response = await fetch(
-        `${API_BASE_URL}/users/by-telegram/${telegramId}`,
+        `${API_BASE_URL}/admin/by-telegram/${telegramId}`,
       );
 
       if (!response.ok) throw new Error("User not found");
