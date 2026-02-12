@@ -26,11 +26,10 @@ const HighLowGame = () => {
   }, []);
 
   const fetchInitialData = async () => {
-    // Telegram ID ကို ယူမယ်၊ မရှိရင် စမ်းသပ်ဖို့ ID တစ်ခု ထည့်ထားမယ်
     const telegramId = tg?.initDataUnsafe?.user?.id;
 
     try {
-      // 💡 အသစ်ပြင်ထားတဲ့ Endpoint "by-telegram" ကို သုံးထားပါတယ်
+      console.log("Fetching for ID:", telegramId); // Debug လုပ်ရန်
       const response = await fetch(
         `${API_BASE_URL}/users/by-telegram/${telegramId}`,
       );
@@ -38,18 +37,20 @@ const HighLowGame = () => {
       if (!response.ok) throw new Error("User not found");
 
       const data = await response.json();
+      console.log("Raw Data from Backend:", data); // ဒါကို Inspect > Console မှာ ကြည့်ပါ
 
-      // Backend က BigInt/String နဲ့ ပို့တဲ့ balance ကို Number အဖြစ် ပြောင်းခြင်း
-      if (data && data.balance) {
-        setBalance(Number(data.balance));
+      // data ထဲမှာ balance တိုက်ရိုက်ပါလား သို့မဟုတ် user object ထဲမှာ ပါလား စစ်မယ်
+      const finalBalance =
+        data.balance !== undefined ? data.balance : data.user?.balance;
+
+      if (finalBalance !== undefined) {
+        setBalance(Number(finalBalance));
+      } else {
+        console.error("Balance field missing in response");
+        setBalance(0);
       }
-
-      const params = new URLSearchParams(window.location.search);
-      const urlAmount = params.get("amount");
-      if (urlAmount) setBetAmount(urlAmount);
     } catch (error) {
-      console.error("Failed to fetch balance:", error);
-      // Balance fetch မရရင် 0 ပေးထားခြင်းဖြင့် NaN မဖြစ်အောင် ကာကွယ်မယ်
+      console.error("Fetch error:", error);
       setBalance(0);
     } finally {
       setLoading(false);
