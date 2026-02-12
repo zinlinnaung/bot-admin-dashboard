@@ -69,7 +69,7 @@ const HighLowGame = () => {
     setShowResultText(false);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/game/high-low/play`, {
+      const response = await fetch(`${API_BASE_URL}/admin/high-low/play`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
