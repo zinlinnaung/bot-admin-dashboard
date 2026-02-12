@@ -3,43 +3,54 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, RotateCcw, ChevronLeft } from "lucide-react";
 import confetti from "canvas-confetti";
 
-// API URL ကို လူကြီးမင်းရဲ့ Backend URL ပြောင်းပေးရန်
 const API_BASE_URL =
   "https://telegram-ecommerce-bot-backend-production.up.railway.app";
 
 const HighLowGame = () => {
   const [balance, setBalance] = useState(0);
   const [betAmount, setBetAmount] = useState("");
-  const [gameState, setGameState] = useState("BETTING"); // BETTING, ROLLING, RESULT
+  const [gameState, setGameState] = useState("BETTING");
   const [showResultText, setShowResultText] = useState(false);
   const [resultNum, setResultNum] = useState(0);
   const [lastResult, setLastResult] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Telegram WebApp Object
   const tg = window.Telegram?.WebApp;
 
   useEffect(() => {
     if (tg) {
       tg.ready();
-      tg.expand(); // Screen အပြည့်ချဲ့ခြင်း
+      tg.expand();
     }
     fetchInitialData();
   }, []);
 
   const fetchInitialData = async () => {
-    const userId = tg?.initDataUnsafe?.user?.id; // Test အတွက် ID တစ်ခုခုထည့်ထားနိုင်သည်
-    try {
-      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`);
-      const data = await response.json();
-      setBalance(Number(data.balance));
+    // Telegram ID ကို ယူမယ်၊ မရှိရင် စမ်းသပ်ဖို့ ID တစ်ခု ထည့်ထားမယ်
+    const telegramId = tg?.initDataUnsafe?.user?.id;
 
-      // URL ကနေ amount ပါလာရင် auto set လုပ်မယ်
+    try {
+      // 💡 အသစ်ပြင်ထားတဲ့ Endpoint "by-telegram" ကို သုံးထားပါတယ်
+      const response = await fetch(
+        `${API_BASE_URL}/users/by-telegram/${telegramId}`,
+      );
+
+      if (!response.ok) throw new Error("User not found");
+
+      const data = await response.json();
+
+      // Backend က BigInt/String နဲ့ ပို့တဲ့ balance ကို Number အဖြစ် ပြောင်းခြင်း
+      if (data && data.balance) {
+        setBalance(Number(data.balance));
+      }
+
       const params = new URLSearchParams(window.location.search);
       const urlAmount = params.get("amount");
       if (urlAmount) setBetAmount(urlAmount);
     } catch (error) {
-      console.error("Failed to fetch balance", error);
+      console.error("Failed to fetch balance:", error);
+      // Balance fetch မရရင် 0 ပေးထားခြင်းဖြင့် NaN မဖြစ်အောင် ကာကွယ်မယ်
+      setBalance(0);
     } finally {
       setLoading(false);
     }
@@ -51,6 +62,8 @@ const HighLowGame = () => {
       return alert("ပမာဏ မှန်ကန်စွာရိုက်ထည့်ပါ။");
     if (amount > balance) return alert("လက်ကျန်ငွေ မလုံလောက်ပါ။");
 
+    const telegramId = tg?.initDataUnsafe?.user?.id?.toString() || "1776339525";
+
     setGameState("ROLLING");
     setShowResultText(false);
 
@@ -59,7 +72,7 @@ const HighLowGame = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          telegramId: tg?.initDataUnsafe?.user?.id.toString() || "YOUR_TEST_ID",
+          telegramId: telegramId,
           amount: amount,
           choice: choice,
         }),
@@ -68,13 +81,12 @@ const HighLowGame = () => {
       if (!response.ok) throw new Error("Server error");
       const data = await response.json();
 
-      // ၁.၈ စက္ကန့် ဂဏန်းလှည့်ပြမယ်
       setTimeout(() => {
         setResultNum(data.resultNum);
-        setBalance(data.newBalance);
+        // Result ထွက်လာတဲ့အခါ Backend က ပြန်ပေးတဲ့ newBalance နဲ့ Sync လုပ်မယ်
+        setBalance(Number(data.newBalance));
         setGameState("RESULT");
 
-        // ၀.၈ စက္ကန့်ကြာမှ စာသားပေါ်မယ်
         setTimeout(() => {
           setLastResult(data);
           setShowResultText(true);
@@ -91,8 +103,8 @@ const HighLowGame = () => {
 
   if (loading)
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        Loading...
+      <div className="min-h-screen bg-black flex items-center justify-center text-amber-500 font-bold tracking-widest">
+        LOADING DATA...
       </div>
     );
 
@@ -109,7 +121,8 @@ const HighLowGame = () => {
               My Balance
             </span>
             <span className="text-xl font-mono font-black tracking-tighter">
-              {balance.toLocaleString()}{" "}
+              {/* NaN မဖြစ်အောင် fallback value 0 ထည့်ထားပါတယ် */}
+              {(balance || 0).toLocaleString()}{" "}
               <span className="text-[12px] text-amber-500">MMK</span>
             </span>
           </div>
@@ -123,7 +136,6 @@ const HighLowGame = () => {
       </div>
 
       <div className="w-full max-w-md mt-8">
-        {/* Game Display Area */}
         <div className="bg-[#151515] rounded-[3rem] p-8 border border-white/10 shadow-2xl relative overflow-hidden">
           <div className="bg-black rounded-[2rem] p-12 mb-8 border border-white/5 flex flex-col items-center justify-center relative z-10">
             <AnimatePresence mode="wait">
@@ -146,7 +158,6 @@ const HighLowGame = () => {
                   >
                     {resultNum < 10 ? `0${resultNum}` : resultNum}
                   </span>
-
                   {showResultText && (
                     <motion.div
                       initial={{ y: 10, opacity: 0 }}
@@ -166,7 +177,6 @@ const HighLowGame = () => {
             </AnimatePresence>
           </div>
 
-          {/* Action Section */}
           <div className="space-y-4">
             {gameState === "BETTING" ? (
               <>
@@ -176,7 +186,7 @@ const HighLowGame = () => {
                     value={betAmount}
                     onChange={(e) => setBetAmount(e.target.value)}
                     placeholder="Enter Bet Amount"
-                    className="w-full bg-black/50 border border-white/10 rounded-2xl py-5 text-center text-2xl font-mono font-bold focus:outline-none focus:border-amber-500/50 transition-all"
+                    className="w-full bg-black/50 border border-white/10 rounded-2xl py-5 text-center text-2xl font-mono font-bold focus:outline-none focus:border-amber-500/50 transition-all placeholder:text-gray-700"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -201,7 +211,7 @@ const HighLowGame = () => {
                 >
                   {lastResult?.isWin
                     ? `+ ${lastResult.payout.toLocaleString()}`
-                    : `- ${parseInt(betAmount).toLocaleString()}`}{" "}
+                    : `- ${Number(betAmount).toLocaleString()}`}{" "}
                   <span className="text-sm">MMK</span>
                 </div>
                 <button
@@ -221,8 +231,6 @@ const HighLowGame = () => {
           </div>
         </div>
       </div>
-
-      {/* Footer Info */}
       <p className="mt-8 text-gray-600 text-[10px] uppercase tracking-widest font-bold">
         Secure Transaction • Provably Fair
       </p>
@@ -230,7 +238,6 @@ const HighLowGame = () => {
   );
 };
 
-// Rolling Animation Component
 const SlotNumber = () => {
   const [num, setNum] = useState(0);
   useEffect(() => {
