@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, RotateCcw, ChevronLeft } from "lucide-react";
+import { Wallet, RotateCcw, ChevronLeft, Loader2 } from "lucide-react"; // Added Loader2
 import confetti from "canvas-confetti";
 
 const API_BASE_URL =
@@ -9,11 +9,12 @@ const API_BASE_URL =
 const HighLowGame = () => {
   const [balance, setBalance] = useState(0);
   const [betAmount, setBetAmount] = useState("");
-  const [gameState, setGameState] = useState("BETTING");
+  const [gameState, setGameState] = useState("BETTING"); // BETTING, ROLLING, RESULT
   const [showResultText, setShowResultText] = useState(false);
   const [resultNum, setResultNum] = useState(0);
   const [lastResult, setLastResult] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Initial data loading
+  const [isBetting, setIsBetting] = useState(false); // New: Button loading state
 
   const tg = window.Telegram?.WebApp;
 
@@ -26,10 +27,9 @@ const HighLowGame = () => {
   }, []);
 
   const fetchInitialData = async () => {
-    const telegramId = tg?.initDataUnsafe?.user?.id || "1776339525"; // Fallback ID for testing
+    const telegramId = tg?.initDataUnsafe?.user?.id || "1776339525";
 
     try {
-      console.log("Fetching for ID:", telegramId); // Debug လုပ်ရန်
       const response = await fetch(
         `${API_BASE_URL}/admin/by-telegram/${telegramId}`,
       );
@@ -37,16 +37,12 @@ const HighLowGame = () => {
       if (!response.ok) throw new Error("User not found");
 
       const data = await response.json();
-      console.log("Raw Data from Backend:", data); // ဒါကို Inspect > Console မှာ ကြည့်ပါ
-
-      // data ထဲမှာ balance တိုက်ရိုက်ပါလား သို့မဟုတ် user object ထဲမှာ ပါလား စစ်မယ်
       const finalBalance =
         data.balance !== undefined ? data.balance : data.user?.balance;
 
       if (finalBalance !== undefined) {
         setBalance(Number(finalBalance));
       } else {
-        console.error("Balance field missing in response");
         setBalance(0);
       }
     } catch (error) {
@@ -59,16 +55,19 @@ const HighLowGame = () => {
 
   const handlePlay = async (choice) => {
     const amount = parseInt(betAmount);
+
+    // 1. Client-side Validation
     if (isNaN(amount) || amount <= 0)
       return alert("ပမာဏ မှန်ကန်စွာရိုက်ထည့်ပါ။");
     if (amount > balance) return alert("လက်ကျန်ငွေ မလုံလောက်ပါ။");
 
+    // 2. Start Button Loading (Immediate Feedback)
+    setIsBetting(true);
+
     const telegramId = tg?.initDataUnsafe?.user?.id?.toString() || "1776339525";
 
-    setGameState("ROLLING");
-    setShowResultText(false);
-
     try {
+      // 3. Call Server
       const response = await fetch(`${API_BASE_URL}/admin/high-low/play`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,33 +78,58 @@ const HighLowGame = () => {
         }),
       });
 
-      if (!response.ok) throw new Error("Server error");
+      // 4. Handle Server Errors
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Server error");
+      }
+
+      // 5. Success: Get Data & Start Animation
       const data = await response.json();
 
+      // ** Fix: Ensure isWin exists **
+      // If backend sends "status": "WIN", we create isWin manually if missing
+      const gameResult = {
+        ...data,
+        isWin: data.isWin !== undefined ? data.isWin : data.status === "WIN",
+      };
+
+      setGameState("ROLLING");
+      setShowResultText(false);
+
+      // Animation Sequence
       setTimeout(() => {
-        setResultNum(data.resultNum);
-        // Result ထွက်လာတဲ့အခါ Backend က ပြန်ပေးတဲ့ newBalance နဲ့ Sync လုပ်မယ်
-        setBalance(Number(data.newBalance));
+        setResultNum(gameResult.resultNum);
+        setBalance(Number(gameResult.newBalance));
         setGameState("RESULT");
 
         setTimeout(() => {
-          setLastResult(data);
+          setLastResult(gameResult);
           setShowResultText(true);
-          if (data.isWin) {
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
+          if (gameResult.isWin) {
+            confetti({
+              particleCount: 150,
+              spread: 70,
+              origin: { y: 0.6 },
+              colors: ["#10b981", "#fbbf24", "#ffffff"],
+            });
           }
         }, 800);
       }, 1800);
     } catch (error) {
-      alert("Error: " + error.message);
+      alert("⚠️ " + error.message);
       setGameState("BETTING");
+    } finally {
+      // Stop Button Loading regardless of success or error
+      setIsBetting(false);
     }
   };
 
   if (loading)
     return (
       <div className="min-h-screen bg-black flex items-center justify-center text-amber-500 font-bold tracking-widest">
-        LOADING DATA...
+        <Loader2 className="animate-spin mr-2" /> LOADING...
       </div>
     );
 
@@ -122,7 +146,6 @@ const HighLowGame = () => {
               My Balance
             </span>
             <span className="text-xl font-mono font-black tracking-tighter">
-              {/* NaN မဖြစ်အောင် fallback value 0 ထည့်ထားပါတယ် */}
               {(balance || 0).toLocaleString()}{" "}
               <span className="text-[12px] text-amber-500">MMK</span>
             </span>
@@ -155,7 +178,13 @@ const HighLowGame = () => {
                   className="text-center"
                 >
                   <span
-                    className={`text-9xl font-mono font-black transition-colors duration-500 ${showResultText ? (lastResult?.isWin ? "text-emerald-500" : "text-rose-500") : "text-white"}`}
+                    className={`text-9xl font-mono font-black transition-colors duration-500 ${
+                      showResultText
+                        ? lastResult?.isWin
+                          ? "text-emerald-500"
+                          : "text-rose-500"
+                        : "text-white"
+                    }`}
                   >
                     {resultNum < 10 ? `0${resultNum}` : resultNum}
                   </span>
@@ -166,7 +195,11 @@ const HighLowGame = () => {
                       className="mt-4"
                     >
                       <span
-                        className={`px-4 py-1 rounded-full text-xs font-black tracking-[0.2em] uppercase ${lastResult?.isWin ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}
+                        className={`px-4 py-1 rounded-full text-xs font-black tracking-[0.2em] uppercase ${
+                          lastResult?.isWin
+                            ? "bg-emerald-500/20 text-emerald-400"
+                            : "bg-rose-500/20 text-rose-400"
+                        }`}
                       >
                         {resultNum >= 50 ? "HIGH" : "LOW"} —{" "}
                         {lastResult?.isWin ? "WINNER" : "LOSER"}
@@ -187,28 +220,46 @@ const HighLowGame = () => {
                     value={betAmount}
                     onChange={(e) => setBetAmount(e.target.value)}
                     placeholder="Enter Bet Amount"
-                    className="w-full bg-black/50 border border-white/10 rounded-2xl py-5 text-center text-2xl font-mono font-bold focus:outline-none focus:border-amber-500/50 transition-all placeholder:text-gray-700"
+                    disabled={isBetting} // Disable input while loading
+                    className="w-full bg-black/50 border border-white/10 rounded-2xl py-5 text-center text-2xl font-mono font-bold focus:outline-none focus:border-amber-500/50 transition-all placeholder:text-gray-700 disabled:opacity-50"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
+                  {/* LOW BUTTON */}
                   <button
                     onClick={() => handlePlay("LOW")}
-                    className="bg-rose-600 hover:bg-rose-500 py-5 rounded-[1.5rem] font-black text-lg shadow-[0_6px_0_rgb(159,18,57)] active:shadow-none active:translate-y-1 transition-all uppercase tracking-widest"
+                    disabled={isBetting}
+                    className="bg-rose-600 hover:bg-rose-500 disabled:bg-rose-900 disabled:cursor-not-allowed py-5 rounded-[1.5rem] font-black text-lg shadow-[0_6px_0_rgb(159,18,57)] active:shadow-none active:translate-y-1 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
                   >
-                    Low
+                    {isBetting ? (
+                      <Loader2 className="animate-spin" size={24} />
+                    ) : (
+                      "LOW"
+                    )}
                   </button>
+
+                  {/* HIGH BUTTON */}
                   <button
                     onClick={() => handlePlay("HIGH")}
-                    className="bg-emerald-600 hover:bg-emerald-500 py-5 rounded-[1.5rem] font-black text-lg shadow-[0_6px_0_rgb(5,150,105)] active:shadow-none active:translate-y-1 transition-all uppercase tracking-widest"
+                    disabled={isBetting}
+                    className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 disabled:cursor-not-allowed py-5 rounded-[1.5rem] font-black text-lg shadow-[0_6px_0_rgb(5,150,105)] active:shadow-none active:translate-y-1 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
                   >
-                    High
+                    {isBetting ? (
+                      <Loader2 className="animate-spin" size={24} />
+                    ) : (
+                      "HIGH"
+                    )}
                   </button>
                 </div>
               </>
             ) : showResultText ? (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <div
-                  className={`p-5 rounded-2xl text-center font-black text-xl border ${lastResult?.isWin ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-rose-500/10 border-rose-500/20 text-rose-500"}`}
+                  className={`p-5 rounded-2xl text-center font-black text-xl border ${
+                    lastResult?.isWin
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                      : "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                  }`}
                 >
                   {lastResult?.isWin
                     ? `+ ${lastResult.payout.toLocaleString()}`
@@ -225,7 +276,7 @@ const HighLowGame = () => {
             ) : (
               <div className="text-center py-6">
                 <p className="text-gray-500 font-black animate-pulse uppercase tracking-[0.3em] text-sm">
-                  Waiting for result...
+                  Rolling...
                 </p>
               </div>
             )}
