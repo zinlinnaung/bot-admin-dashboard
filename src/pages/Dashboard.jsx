@@ -12,6 +12,7 @@ import {
   Settings2,
   ShieldCheck,
   Percent,
+  Clock, // Added Icon
 } from "lucide-react";
 import StatCard from "../components/StatCard";
 
@@ -40,6 +41,8 @@ export default function Dashboard() {
   // Result Settle States
   const [winNum, setWinNum] = useState("");
   const [gameType, setGameType] = useState("2D");
+  // ✅ NEW: Session State added
+  const [session, setSession] = useState("MORNING");
 
   const fetchData = async () => {
     try {
@@ -77,7 +80,9 @@ export default function Dashboard() {
 
   const handleSettleResult = async () => {
     if (!winNum) return alert("ပေါက်ဂဏန်း ရိုက်ထည့်ပါ");
-    const confirmText = `${gameType} ပေါက်ဂဏန်း [ ${winNum} ] အတည်ပြုပါသလား?`;
+
+    // ✅ Updated confirmation text to include Session
+    const confirmText = `${gameType} (${session}) ပေါက်ဂဏန်း [ ${winNum} ] အတည်ပြုပါသလား?`;
     if (!window.confirm(confirmText)) return;
 
     setSettleLoading(true);
@@ -87,13 +92,26 @@ export default function Dashboard() {
         {
           type: gameType,
           winNumber: winNum,
+          session: session, // ✅ Sending session to backend
         },
       );
-      alert(`အောင်မြင်သည်! 🎉\nပေါက်သူစုစုပေါင်း: ${res.data.winCount} ဦး`);
-      setWinNum("");
+
+      if (res.data.success) {
+        // ✅ Handle winCount safely
+        alert(
+          `အောင်မြင်သည်! 🎉\nပေါက်သူစုစုပေါင်း: ${res.data.winCount || 0} ဦး`,
+        );
+        setWinNum("");
+      } else {
+        alert(res.data.message);
+      }
+
       fetchData();
     } catch (error) {
-      alert("Error: Result ထုတ်ပြန်ခြင်း မအောင်မြင်ပါ");
+      console.error(error);
+      const msg =
+        error.response?.data?.message || "Result ထုတ်ပြန်ခြင်း မအောင်မြင်ပါ";
+      alert(`Error: ${msg}`);
     } finally {
       setSettleLoading(false);
     }
@@ -181,7 +199,8 @@ export default function Dashboard() {
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* ✅ Changed to grid-cols-4 to fit Session input */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-500 ml-1">
                   Game Type
@@ -193,6 +212,21 @@ export default function Dashboard() {
                 >
                   <option value="2D">2D Game</option>
                   <option value="3D">3D Game</option>
+                </select>
+              </div>
+
+              {/* ✅ NEW: Session Selector */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-500 ml-1">
+                  Session
+                </label>
+                <select
+                  value={session}
+                  onChange={(e) => setSession(e.target.value)}
+                  className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="MORNING">Morning (12:01)</option>
+                  <option value="EVENING">Evening (04:30)</option>
                 </select>
               </div>
 
@@ -218,14 +252,14 @@ export default function Dashboard() {
                   {settleLoading ? (
                     <Loader2 className="animate-spin" size={20} />
                   ) : (
-                    "Settle & Notify"
+                    "Settle"
                   )}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* 💡 ⚙️ High-Low Bet Settings Panel (NEW) */}
+          {/* 💡 ⚙️ High-Low Bet Settings Panel */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100">
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
@@ -367,7 +401,9 @@ export default function Dashboard() {
                 </div>
                 <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-500 ${settings.winRatio > 50 ? "bg-rose-500" : "bg-emerald-500"}`}
+                    className={`h-full transition-all duration-500 ${
+                      settings.winRatio > 50 ? "bg-rose-500" : "bg-emerald-500"
+                    }`}
                     style={{ width: `${settings.winRatio}%` }}
                   ></div>
                 </div>

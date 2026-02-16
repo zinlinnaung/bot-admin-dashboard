@@ -1,2 +1,16 @@
 /* src/index.css */
 @import "tailwindcss";
+
+/* index.css သို့မဟုတ် App.css ထဲမှာ ထည့်ပါ */
+@layer base {
+  html {
+    /* 100% မှာ 80% လောက်ပဲ ရှိနေအောင် 16px ရဲ့ 85% သို့မဟုတ် 90% ခန့်ကို ချိန်ညှိပါ */
+    font-size: 14px;
+  }
+
+  @media (min-width: 1536px) {
+    html {
+      font-size: 14px; /* Screen အလွန်ကြီးရင် နည်းနည်းပြန်တင်ပေးပါ */
+    }
+  }
+}

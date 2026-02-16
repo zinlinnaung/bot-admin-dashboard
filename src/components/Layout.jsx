@@ -70,12 +70,24 @@ export default function Layout() {
           />
 
           {/* Link to the game from the sidebar (Optional) */}
-          {/* <SidebarItem
-            to="/game"
+          <SidebarItem
+            to="/transactions"
             icon={Gamepad2}
-            label="Dice Game"
-            active={location.pathname === "/game"}
-          /> */}
+            label="Transaction History"
+            active={location.pathname === "/transactions"}
+          />
+          <SidebarItem
+            to="/subtitle-translator"
+            icon={Gamepad2}
+            label="Subtitle Translator"
+            active={location.pathname === "/subtitle-translator"}
+          />
+          <SidebarItem
+            to="/order"
+            icon={Gamepad2}
+            label="Game Orders"
+            active={location.pathname === "/order"}
+          />
         </nav>
 
         <div className="p-6 border-t border-gray-800">

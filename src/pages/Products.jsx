@@ -9,9 +9,9 @@ import {
   X,
   Save,
   AlertCircle,
+  Gamepad2, // Game icons အတွက် အသစ်ထည့်ထားပါတယ်
 } from "lucide-react";
 
-// API URL (Based on your snippet)
 const API_URL =
   "https://telegram-ecommerce-bot-backend-production.up.railway.app/admin";
 
@@ -19,21 +19,20 @@ export default function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
-  // Form States
+  // Form States - 'type' field ကို schema အသစ်အတိုင်း ထည့်ထားပါတယ်
   const [currentProduct, setCurrentProduct] = useState({
     id: null,
     name: "",
     category: "VPN",
     price: "",
     description: "",
+    type: "AUTO", // DEFAULT က AUTO (Keys)
   });
   const [keyForm, setKeyForm] = useState({ productId: null, key: "" });
 
-  // 1. Fetch Products
   const fetchProducts = async () => {
     try {
       const res = await axios.get(`${API_URL}/products`);
@@ -49,35 +48,28 @@ export default function Products() {
     fetchProducts();
   }, []);
 
-  // 2. Handle Submit (Create or Update)
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...currentProduct,
+        price: Number(currentProduct.price),
+      };
+
       if (currentProduct.id) {
-        // Update
-        await axios.put(`${API_URL}/products/${currentProduct.id}`, {
-          ...currentProduct,
-          price: Number(currentProduct.price),
-        });
+        await axios.put(`${API_URL}/products/${currentProduct.id}`, payload);
       } else {
-        // Create
-        await axios.post(`${API_URL}/products`, {
-          ...currentProduct,
-          price: Number(currentProduct.price),
-        });
+        await axios.post(`${API_URL}/products`, payload);
       }
       setIsModalOpen(false);
-      fetchProducts(); // Refresh list
+      fetchProducts();
     } catch (error) {
       alert("Error saving product");
-      console.error(error);
     }
   };
 
-  // 3. Handle Delete
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?"))
-      return;
+    if (!window.confirm("Are you sure?")) return;
     try {
       await axios.delete(`${API_URL}/products/${id}`);
       setProducts(products.filter((p) => p.id !== id));
@@ -86,29 +78,28 @@ export default function Products() {
     }
   };
 
-  // 4. Handle Add Key
   const handleAddKey = async (e) => {
     e.preventDefault();
     try {
       await axios.post(`${API_URL}/products/${keyForm.productId}/keys`, {
         key: keyForm.key,
       });
-      alert("Key added successfully!");
-      setKeyForm({ ...keyForm, key: "" }); // Clear input
-      fetchProducts(); // Refresh to show updated stock count
+      alert("Key added!");
+      setKeyForm({ ...keyForm, key: "" });
+      fetchProducts();
     } catch (error) {
       alert("Error adding key");
     }
   };
 
-  // Helper to open modals
   const openAddModal = () => {
     setCurrentProduct({
       id: null,
       name: "",
-      category: "VPN",
+      category: "Gaming",
       price: "",
       description: "",
+      type: "MANUAL", // အသစ်ဆိုရင် Game topup ဖြစ်ဖို့ manual ပေးထားမယ်
     });
     setIsModalOpen(true);
   };
@@ -120,13 +111,9 @@ export default function Products() {
       category: product.category,
       price: product.price,
       description: product.description || "",
+      type: product.type || "AUTO",
     });
     setIsModalOpen(true);
-  };
-
-  const openKeyModal = (product) => {
-    setKeyForm({ productId: product.id, key: "" });
-    setIsKeyModalOpen(true);
   };
 
   if (loading)
@@ -138,18 +125,16 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Product Inventory</h2>
         <button
           onClick={openAddModal}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition shadow-lg shadow-blue-200"
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl shadow-lg shadow-blue-200"
         >
           <Plus size={18} /> Add Product
         </button>
       </div>
 
-      {/* Product Grid */}
       {products.length === 0 ? (
         <div className="bg-white p-20 rounded-3xl border border-dashed flex flex-col items-center gap-3">
           <AlertCircle size={40} className="text-gray-300" />
@@ -163,12 +148,25 @@ export default function Products() {
               className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition"
             >
               <div className="flex justify-between mb-4">
-                <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
-                  <Package size={24} />
+                <div
+                  className={`p-3 rounded-2xl ${p.type === "MANUAL" ? "bg-purple-50 text-purple-600" : "bg-blue-50 text-blue-600"}`}
+                >
+                  {p.type === "MANUAL" ? (
+                    <Gamepad2 size={24} />
+                  ) : (
+                    <Package size={24} />
+                  )}
                 </div>
-                <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 h-fit rounded uppercase">
-                  {p.category}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 rounded uppercase">
+                    {p.category}
+                  </span>
+                  <span
+                    className={`text-[9px] font-black px-2 py-0.5 rounded ${p.type === "MANUAL" ? "bg-purple-600 text-white" : "bg-blue-600 text-white"}`}
+                  >
+                    {p.type}
+                  </span>
+                </div>
               </div>
 
               <h3 className="text-lg font-bold text-gray-800 truncate">
@@ -189,33 +187,41 @@ export default function Products() {
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] text-gray-400 uppercase font-bold">
-                    Stock
+                    Status
                   </p>
-                  <p
-                    className={`font-bold ${p.keys?.filter((k) => !k.isUsed).length > 0 ? "text-emerald-500" : "text-rose-500"}`}
-                  >
-                    {p.keys ? p.keys.filter((k) => !k.isUsed).length : 0} Keys
-                  </p>
+                  {p.type === "MANUAL" ? (
+                    <p className="font-bold text-purple-500">Instant Topup</p>
+                  ) : (
+                    <p
+                      className={`font-bold ${p.keys?.filter((k) => !k.isUsed).length > 0 ? "text-emerald-500" : "text-rose-500"}`}
+                    >
+                      {p.keys ? p.keys.filter((k) => !k.isUsed).length : 0} Keys
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex justify-between gap-2 mt-2">
-                <button
-                  onClick={() => openKeyModal(p)}
-                  className="flex-1 bg-emerald-50 text-emerald-600 py-2 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-emerald-100"
-                >
-                  <Plus size={14} /> Add Stock
-                </button>
+                {p.type === "AUTO" && (
+                  <button
+                    onClick={() => {
+                      setKeyForm({ productId: p.id, key: "" });
+                      setIsKeyModalOpen(true);
+                    }}
+                    className="flex-1 bg-emerald-50 text-emerald-600 py-2 rounded-lg text-xs font-bold flex justify-center items-center gap-1"
+                  >
+                    <Plus size={14} /> Add Keys
+                  </button>
+                )}
                 <button
                   onClick={() => openEditModal(p)}
-                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
                 >
                   <Edit size={18} />
                 </button>
                 <button
                   onClick={() => handleDelete(p.id)}
-                  className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                  className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                 >
                   <Trash2 size={18} />
                 </button>
@@ -225,7 +231,7 @@ export default function Products() {
         </div>
       )}
 
-      {/* ================= PRODUCT MODAL (Create / Edit) ================= */}
+      {/* PRODUCT MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
@@ -234,7 +240,7 @@ export default function Products() {
                 {currentProduct.id ? "Edit Product" : "New Product"}
               </h3>
               <button onClick={() => setIsModalOpen(false)}>
-                <X className="text-gray-400 hover:text-gray-600" />
+                <X />
               </button>
             </div>
 
@@ -246,7 +252,7 @@ export default function Products() {
                 <input
                   type="text"
                   required
-                  className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border rounded-xl px-4 py-2 outline-none"
                   value={currentProduct.name}
                   onChange={(e) =>
                     setCurrentProduct({
@@ -265,7 +271,7 @@ export default function Products() {
                   <input
                     type="number"
                     required
-                    className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border rounded-xl px-4 py-2 outline-none"
                     value={currentProduct.price}
                     onChange={(e) =>
                       setCurrentProduct({
@@ -277,24 +283,43 @@ export default function Products() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Category
+                    Product Type
                   </label>
                   <select
-                    className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                    value={currentProduct.category}
+                    className="w-full border rounded-xl px-4 py-2 outline-none bg-white"
+                    value={currentProduct.type}
                     onChange={(e) =>
                       setCurrentProduct({
                         ...currentProduct,
-                        category: e.target.value,
+                        type: e.target.value,
                       })
                     }
                   >
-                    <option value="VPN">VPN</option>
-                    <option value="Netflix">Netflix</option>
-                    <option value="Premium">Premium Account</option>
-                    <option value="Gaming">Gaming ID</option>
+                    <option value="AUTO">AUTO (Keys/VPN)</option>
+                    <option value="MANUAL">MANUAL (MLBB/PUBG)</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">
+                  Category
+                </label>
+                <select
+                  className="w-full border rounded-xl px-4 py-2 outline-none bg-white"
+                  value={currentProduct.category}
+                  onChange={(e) =>
+                    setCurrentProduct({
+                      ...currentProduct,
+                      category: e.target.value,
+                    })
+                  }
+                >
+                  <option value="Gaming">Gaming (MLBB/PUBG)</option>
+                  <option value="VPN">VPN</option>
+                  <option value="Netflix">Netflix</option>
+                  <option value="Premium">Premium Account</option>
+                </select>
               </div>
 
               <div>
@@ -302,8 +327,8 @@ export default function Products() {
                   Description
                 </label>
                 <textarea
-                  className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                  rows="3"
+                  className="w-full border rounded-xl px-4 py-2 outline-none"
+                  rows="2"
                   value={currentProduct.description}
                   onChange={(e) =>
                     setCurrentProduct({
@@ -316,7 +341,7 @@ export default function Products() {
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 flex justify-center gap-2"
+                className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold flex justify-center gap-2"
               >
                 <Save size={18} /> Save Product
               </button>
@@ -325,7 +350,7 @@ export default function Products() {
         </div>
       )}
 
-      {/* ================= ADD KEY MODAL ================= */}
+      {/* KEY MODAL (Only for AUTO type) */}
       {isKeyModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
@@ -334,20 +359,15 @@ export default function Products() {
                 <Key size={18} /> Add Stock Key
               </h3>
               <button onClick={() => setIsKeyModalOpen(false)}>
-                <X className="text-gray-400 hover:text-gray-600" />
+                <X />
               </button>
             </div>
-
             <form onSubmit={handleAddKey} className="space-y-4">
-              <div className="bg-blue-50 p-3 rounded-lg text-xs text-blue-700 mb-2">
-                Enter the secret key, token, or login credential for this
-                product.
-              </div>
               <textarea
                 required
-                className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-sm"
+                className="w-full border rounded-xl px-4 py-2 font-mono text-sm outline-none"
                 rows="3"
-                placeholder="e.g. vmess://... or user:pass"
+                placeholder="e.g. user:pass"
                 value={keyForm.key}
                 onChange={(e) =>
                   setKeyForm({ ...keyForm, key: e.target.value })
@@ -355,7 +375,7 @@ export default function Products() {
               />
               <button
                 type="submit"
-                className="w-full bg-emerald-600 text-white py-2 rounded-xl font-bold hover:bg-emerald-700"
+                className="w-full bg-emerald-600 text-white py-2 rounded-xl font-bold"
               >
                 Confirm Add
               </button>
