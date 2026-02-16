@@ -10,8 +10,7 @@ const SubtitleTranslator = () => {
   const fileInputRef = useRef(null);
 
   // --- Configuration ---
-  const GROQ_API_KEY =
-    "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";
+  const GROQ_API_KEY = process.env.REACT_APP_GROQ_API_KEY; // .env ဖိုင်တွင် သတ်မှတ်ထားသော API Key ကို အသုံးပြုသည်
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
