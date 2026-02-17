@@ -36,7 +36,7 @@ const UserProfileMini = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const tid = tg?.initDataUnsafe?.user?.id || "6503912648";
+      const tid = tg?.initDataUnsafe?.user?.id || "1776339525";
       const userRes = await axios.get(
         `${API_BASE_URL}/admin/by-telegram/${tid}`,
       );
@@ -68,21 +68,21 @@ const UserProfileMini = () => {
     formData.append("image", form.image);
     formData.append("amount", form.amount);
     formData.append("method", form.method);
-    formData.append("telegramId", tg?.initDataUnsafe?.user?.id || "6503912648");
+    formData.append("telegramId", tg?.initDataUnsafe?.user?.id || "1776339525");
 
-    try {
-      setSubmitting(true);
-      await axios.post(`${API_BASE_URL}/wallet/deposit-with-image`, formData);
-      tg?.HapticFeedback.notificationOccurred("success");
-      tg?.showAlert("Deposit request sent! Waiting for Admin approval.");
-      setForm({ amount: "", method: "KPay", image: null, preview: null });
-      setCurrentView("profile");
-      fetchData();
-    } catch (err) {
-      tg?.showAlert("Upload failed");
-    } finally {
-      setSubmitting(false);
-    }
+    // try {
+    setSubmitting(true);
+    await axios.post(`${API_BASE_URL}/wallet/deposit-with-image`, formData);
+    tg?.HapticFeedback.notificationOccurred("success");
+    tg?.showAlert("Deposit request sent! Waiting for Admin approval.");
+    setForm({ amount: "", method: "KPay", image: null, preview: null });
+    setCurrentView("profile");
+    fetchData();
+    // } catch (err) {
+    //   tg?.showAlert("Upload failed");
+    // } finally {
+    //   setSubmitting(false);
+    // }
   };
 
   if (loading)
