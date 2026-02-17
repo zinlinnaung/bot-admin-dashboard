@@ -70,19 +70,21 @@ const UserProfileMini = () => {
     formData.append("method", form.method);
     formData.append("telegramId", tg?.initDataUnsafe?.user?.id || "1776339525");
 
-    // try {
-    setSubmitting(true);
-    await axios.post(`${API_BASE_URL}/wallet/deposit-with-image`, formData);
-    tg?.HapticFeedback.notificationOccurred("success");
-    tg?.showAlert("Deposit request sent! Waiting for Admin approval.");
-    setForm({ amount: "", method: "KPay", image: null, preview: null });
-    setCurrentView("profile");
-    fetchData();
-    // } catch (err) {
-    //   tg?.showAlert("Upload failed");
-    // } finally {
-    //   setSubmitting(false);
-    // }
+    try {
+      setSubmitting(true);
+      await axios.post(`${API_BASE_URL}/wallet/deposit-with-image`, formData);
+      tg?.HapticFeedback.notificationOccurred("success");
+      tg?.showAlert("Deposit request sent! Waiting for Admin approval.");
+      setForm({ amount: "", method: "KPay", image: null, preview: null });
+      setCurrentView("profile");
+      fetchData();
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message;
+      console.error("Full Error:", err.response);
+      tg?.showAlert("Upload failed");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading)
