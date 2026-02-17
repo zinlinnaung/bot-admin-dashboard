@@ -31,6 +31,8 @@ const UserProfileMini = () => {
     preview: null,
   });
 
+  // 1. THIS REF MUST BE ATTACHED TO THE INPUT
+  const fileInputRef = useRef(null);
   const tg = window.Telegram?.WebApp;
 
   const fetchData = useCallback(async () => {
@@ -47,6 +49,7 @@ const UserProfileMini = () => {
       setUserData(details.data);
       setProducts(prods.data);
     } catch (e) {
+      console.error("Fetch error:", e);
       tg?.showAlert("Error loading data");
     } finally {
       setLoading(false);
@@ -61,27 +64,54 @@ const UserProfileMini = () => {
 
   const handleTopUp = async (e) => {
     e.preventDefault();
-    if (!form.amount || !form.image)
+    console.log("Submit triggered");
+
+    if (!form.amount || !form.image) {
       return tg?.showAlert("Please fill all fields");
+    }
 
     const formData = new FormData();
-    formData.append("image", form.image);
-    formData.append("amount", form.amount);
+    formData.append("amount", form.amount.toString());
     formData.append("method", form.method);
-    formData.append("telegramId", tg?.initDataUnsafe?.user?.id || "1776339525");
+    formData.append(
+      "telegramId",
+      (tg?.initDataUnsafe?.user?.id || "1776339525").toString(),
+    );
+    formData.append("image", form.image);
 
     try {
       setSubmitting(true);
-      await axios.post(`${API_BASE_URL}/wallet/deposit-with-image`, formData);
-      tg?.HapticFeedback.notificationOccurred("success");
-      tg?.showAlert("Deposit request sent! Waiting for Admin approval.");
-      setForm({ amount: "", method: "KPay", image: null, preview: null });
-      setCurrentView("profile");
-      fetchData();
+      const response = await axios.post(
+        `${API_BASE_URL}/admin/deposit-with-image`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 30000,
+        },
+      );
+
+      console.log("Server Response:", response.data);
+
+      if (response.data.success) {
+        // ✅ 1. FEEDBACK
+        tg?.HapticFeedback.notificationOccurred("success");
+        tg?.showAlert("✅ Deposit sent! Waiting for approval.");
+
+        // ✅ 2. RESET UI STATE
+        setCurrentView("profile");
+        setForm({ amount: "", method: "KPay", image: null, preview: null });
+
+        // ✅ 3. RESET PHYSICAL FILE INPUT
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+
+        // ✅ 4. REFRESH DATA
+        fetchData();
+      }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message;
-      console.error("Full Error:", err.response);
-      tg?.showAlert("Upload failed");
+      console.error("Upload Error:", err);
+      tg?.showAlert(`Upload failed: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -125,18 +155,14 @@ const UserProfileMini = () => {
         {currentView === "profile" && (
           <ProfileView data={userData} setView={setCurrentView} />
         )}
-        {currentView === "shop" && (
-          <ShopView
-            products={products}
-            onBuy={() => tg.showAlert("Buy feature ready")}
-          />
-        )}
+        {currentView === "shop" && <ShopView products={products} />}
         {currentView === "topup" && (
           <TopUpView
             form={form}
             setForm={setForm}
             onSubmit={handleTopUp}
             loading={submitting}
+            fileInputRef={fileInputRef} // ⭐ PASSING THE REF HERE
           />
         )}
       </div>
@@ -163,12 +189,74 @@ const UserProfileMini = () => {
   );
 };
 
+// ⭐ TOPUP VIEW NOW ACCEPTS THE REF
+const TopUpView = ({ form, setForm, onSubmit, loading, fileInputRef }) => (
+  <form
+    onSubmit={onSubmit}
+    className="bg-white p-6 rounded-[2rem] shadow-sm space-y-4 animate-in slide-in-from-left-4"
+  >
+    <h3 className="font-bold text-xl mb-4">Deposit</h3>
+    <select
+      className="w-full p-4 bg-gray-50 rounded-xl font-bold outline-none"
+      value={form.method}
+      onChange={(e) => setForm({ ...form, method: e.target.value })}
+    >
+      <option value="KPay">KPay</option>
+      <option value="WavePay">WavePay</option>
+    </select>
+    <input
+      type="number"
+      placeholder="Amount"
+      className="w-full p-4 bg-gray-50 rounded-xl font-bold outline-none"
+      value={form.amount}
+      onChange={(e) => setForm({ ...form, amount: e.target.value })}
+    />
+    <div
+      onClick={() => document.getElementById("slip").click()}
+      className="w-full h-40 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center relative overflow-hidden"
+    >
+      {form.preview ? (
+        <img
+          src={form.preview}
+          className="w-full h-full object-cover"
+          alt="Preview"
+        />
+      ) : (
+        <>
+          <ImageIcon className="text-gray-300 mb-2" />
+          <p className="text-[10px] text-gray-400 font-bold uppercase">
+            Upload Slip
+          </p>
+        </>
+      )}
+    </div>
+    <input
+      id="slip"
+      type="file"
+      ref={fileInputRef} // ⭐ ATTACHING THE REF HERE
+      hidden
+      accept="image/*"
+      onChange={(e) => {
+        const file = e.target.files[0];
+        if (file)
+          setForm({ ...form, image: file, preview: URL.createObjectURL(file) });
+      }}
+    />
+    <button
+      disabled={loading}
+      className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center items-center"
+    >
+      {loading ? <Loader2 className="animate-spin" /> : "Submit Deposit"}
+    </button>
+  </form>
+);
+
 const ProfileView = ({ data, setView }) => (
   <div className="space-y-6 animate-in fade-in duration-500">
     <div className="bg-indigo-600 p-8 rounded-[2rem] text-white shadow-lg">
       <p className="text-xs opacity-70 mb-1">Balance</p>
       <h2 className="text-4xl font-black">
-        {Number(data?.balance).toLocaleString()}{" "}
+        {Number(data?.balance || 0).toLocaleString()}{" "}
         <span className="text-sm">MMK</span>
       </h2>
       <div className="flex gap-2 mt-6">
@@ -212,64 +300,8 @@ const ProfileView = ({ data, setView }) => (
   </div>
 );
 
-const TopUpView = ({ form, setForm, onSubmit, loading }) => (
-  <form
-    onSubmit={onSubmit}
-    className="bg-white p-6 rounded-[2rem] shadow-sm space-y-4 animate-in slide-in-from-left-4"
-  >
-    <h3 className="font-bold text-xl mb-4">Deposit</h3>
-    <select
-      className="w-full p-4 bg-gray-50 rounded-xl font-bold outline-none"
-      value={form.method}
-      onChange={(e) => setForm({ ...form, method: e.target.value })}
-    >
-      <option value="KPay">KPay</option>
-      <option value="WavePay">WavePay</option>
-    </select>
-    <input
-      type="number"
-      placeholder="Amount"
-      className="w-full p-4 bg-gray-50 rounded-xl font-bold outline-none"
-      value={form.amount}
-      onChange={(e) => setForm({ ...form, amount: e.target.value })}
-    />
-    <div
-      onClick={() => document.getElementById("slip").click()}
-      className="w-full h-40 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center relative overflow-hidden"
-    >
-      {form.preview ? (
-        <img src={form.preview} className="w-full h-full object-cover" />
-      ) : (
-        <>
-          <ImageIcon className="text-gray-300 mb-2" />
-          <p className="text-[10px] text-gray-400 font-bold uppercase">
-            Upload Slip
-          </p>
-        </>
-      )}
-    </div>
-    <input
-      id="slip"
-      type="file"
-      hidden
-      accept="image/*"
-      onChange={(e) => {
-        const file = e.target.files[0];
-        if (file)
-          setForm({ ...form, image: file, preview: URL.createObjectURL(file) });
-      }}
-    />
-    <button
-      disabled={loading}
-      className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-100 flex justify-center"
-    >
-      {loading ? <Loader2 className="animate-spin" /> : "Submit Deposit"}
-    </button>
-  </form>
-);
-
 const ShopView = ({ products }) => (
-  <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-right-4">
+  <div className="grid grid-cols-2 gap-4">
     {products.map((p) => (
       <div key={p.id} className="bg-white p-4 rounded-2xl border">
         <div className="h-20 w-20 bg-indigo-50 rounded-xl mx-auto mb-3 flex items-center justify-center font-bold text-indigo-600">
