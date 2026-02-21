@@ -96,7 +96,7 @@ const UserProfileMini = () => {
     setIsValidating(true);
     try {
       const res = await axios.get(
-        `https://cekidml.caliph.dev/api/validasi?id=${gameForm.playerId}&serverid=${gameForm.serverId}`,
+        `${API_BASE_URL}/admin/validate-mlbb?id=${gameForm.playerId}&serverid=${gameForm.serverId}`,
       );
       if (res.data.status === "success") {
         setGameForm((prev) => ({
