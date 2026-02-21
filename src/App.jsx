@@ -11,6 +11,8 @@ import TransactionHistory from "./pages/TransactionHistory";
 import SubtitleTranslator from "./pages/SubtitleTranslator";
 import GameOrders from "./pages/GameOrders";
 import UserProfileMini from "./pages/UserProfileMini";
+import DeductBalance from "./pages/DeductBalance";
+import TwoDAdmin from "./pages/TwoDAdmin";
 
 function App() {
   return (
@@ -26,7 +28,8 @@ function App() {
           <Route path="/transactions" element={<TransactionHistory />} />
           <Route path="/subtitle-translator" element={<SubtitleTranslator />} />
           <Route path="/order" element={<GameOrders />} />
-
+          <Route path="/deduct" element={<DeductBalance />} />
+          <Route path="/2d" element={<TwoDAdmin />} />
           {/* Catch-all inside the layout */}
           <Route path="*" element={<Dashboard />} />
         </Route>

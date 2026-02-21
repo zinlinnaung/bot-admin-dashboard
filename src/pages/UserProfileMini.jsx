@@ -63,6 +63,50 @@ const UserProfileMini = () => {
     fetchData();
   }, [fetchData, tg]);
 
+  // --- Logic for Purchasing Product ---
+  const handlePurchase = async (product) => {
+    // ၁။ ပိုက်ဆံရှိမရှိ အရင်စစ်မယ်
+    if (userData.balance < product.price) {
+      return tg?.showAlert("❌ လက်ကျန်ငွေ မလုံလောက်ပါဘူး။ ငွေအရင်ဖြည့်ပေးပါ။");
+    }
+
+    // ၂။ အတည်ပြုချက်တောင်းမယ်
+    tg?.showConfirm(
+      `ဝယ်ယူရန် သေချာပါသလား?\n${product.name} - ${Number(product.price).toLocaleString()} MMK`,
+      async (confirmed) => {
+        if (!confirmed) return;
+
+        try {
+          setSubmitting(true); // ခလုတ်ကို ခေတ္တပိတ်ထားမယ်
+
+          const tid = tg?.initDataUnsafe?.user?.id || "1776339525";
+
+          // Backend API သို့ ပို့မယ်
+          // Note: Backend endpoint က 'purchase' ဖြစ်ရပါမယ်
+          const response = await axios.post(`${API_BASE_URL}/admin/purchase`, {
+            telegramId: tid.toString(),
+            productId: product.id,
+          });
+
+          if (response.data) {
+            tg?.HapticFeedback.notificationOccurred("success");
+            tg?.showAlert("✅ ဝယ်ယူမှု အောင်မြင်ပါသည်။");
+
+            // ၃။ Data တွေကို ပြန် Update လုပ်မယ် (Balance လျော့သွားအောင်)
+            fetchData();
+            setCurrentView("profile");
+          }
+        } catch (err) {
+          console.error("Purchase Error:", err);
+          const msg = err.response?.data?.message || "ဝယ်ယူမှု မအောင်မြင်ပါ။";
+          tg?.showAlert(`❌ Error: ${msg}`);
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    );
+  };
+
   // --- Logic for Deposit Submission ---
   const handleTopUp = async (e) => {
     e.preventDefault();
@@ -149,7 +193,13 @@ const UserProfileMini = () => {
         {currentView === "profile" && (
           <ProfileView data={userData} setView={setCurrentView} />
         )}
-        {currentView === "shop" && <ShopView products={products} />}
+        {currentView === "shop" && (
+          <ShopView
+            products={products}
+            onBuy={handlePurchase}
+            loading={submitting}
+          />
+        )}
         {currentView === "topup" && (
           <TopUpView
             form={form}
@@ -340,15 +390,25 @@ const TopUpView = ({ form, setForm, onSubmit, loading, fileInputRef }) => (
 );
 
 // --- Sub-Component: Shop Grid ---
-const ShopView = ({ products }) => (
+// --- Sub-Component: Shop Grid ---
+const ShopView = ({ products, onBuy, loading }) => (
   <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-right-4">
     {products.map((p) => (
       <div
         key={p.id}
         className="bg-white p-4 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col"
       >
-        <div className="h-28 w-full bg-indigo-50 rounded-2xl mb-3 flex items-center justify-center font-black text-indigo-600 text-2xl">
-          {p.name[0]}
+        <div className="h-28 w-full bg-indigo-50 rounded-2xl mb-3 flex items-center justify-center font-black text-indigo-600 text-2xl overflow-hidden">
+          {/* ပုံရှိရင် ပုံပြမယ် မရှိရင် စာလုံးပြမယ် */}
+          {p.image ? (
+            <img
+              src={`${API_BASE_URL}/uploads/${p.image}`}
+              alt={p.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            p.name[0]
+          )}
         </div>
         <h4 className="text-xs font-bold text-gray-800 line-clamp-1 mb-1">
           {p.name}
@@ -357,8 +417,12 @@ const ShopView = ({ products }) => (
           {Number(p.price).toLocaleString()}{" "}
           <span className="text-[8px]">MMK</span>
         </p>
-        <button className="w-full mt-3 bg-gray-900 text-white py-2 rounded-xl text-[10px] font-bold active:scale-95 transition-transform">
-          BUY NOW
+        <button
+          disabled={loading}
+          onClick={() => onBuy(p)}
+          className="w-full mt-3 bg-gray-900 text-white py-2 rounded-xl text-[10px] font-bold active:scale-95 transition-transform disabled:bg-gray-400"
+        >
+          {loading ? "PROCESSING..." : "BUY NOW"}
         </button>
       </div>
     ))}
