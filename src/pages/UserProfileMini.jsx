@@ -20,6 +20,18 @@ const UserProfileMini = () => {
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState("profile");
   const [submitting, setSubmitting] = useState(false);
+
+  // Game Purchase States
+  const [showModal, setShowModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [gameForm, setGameForm] = useState({
+    playerId: "",
+    serverId: "",
+    nickname: "",
+  });
+  const [isValidating, setIsValidating] = useState(false);
+
+  // Deposit Form State
   const [form, setForm] = useState({
     amount: "",
     method: "KPay",
@@ -35,23 +47,18 @@ const UserProfileMini = () => {
     try {
       setLoading(true);
       const tid = tg?.initDataUnsafe?.user?.id || "1776339525";
-
-      // Get user ID from Telegram ID
       const userRes = await axios.get(
         `${API_BASE_URL}/admin/by-telegram/${tid}`,
       );
-
-      // Fetch full details and products in parallel
       const [details, prods] = await Promise.all([
         axios.get(`${API_BASE_URL}/admin/users/${userRes.data.id}`),
         axios.get(`${API_BASE_URL}/admin/products`),
       ]);
-
       setUserData(details.data);
       setProducts(prods.data);
     } catch (e) {
       console.error("Fetch Error:", e);
-      tg?.showAlert("Error loading data. Please check your connection.");
+      tg?.showAlert("Error loading data.");
     } finally {
       setLoading(false);
     }
@@ -63,54 +70,86 @@ const UserProfileMini = () => {
     fetchData();
   }, [fetchData, tg]);
 
-  // --- Logic for Purchasing Product ---
-  const handlePurchase = async (product) => {
-    // ၁။ Balance နဲ့ Price ကို ကိန်းဂဏန်းအစစ်ဖြစ်အောင် အရင်ပြောင်းမယ်
+  // --- Purchase Logic ---
+  const handlePurchaseClick = (product) => {
     const currentBalance = Number(userData?.balance || 0);
     const productPrice = Number(product?.price || 0);
 
-    // Debug လုပ်ကြည့်ဖို့ (Browser Console မှာ ကြည့်လို့ရတယ်)
-    console.log("Balance:", currentBalance, "Price:", productPrice);
-
-    // ၂။ ကိန်းဂဏန်းအချင်းချင်း ပြန်နှိုင်းယှဉ်မယ်
     if (currentBalance < productPrice) {
       return tg?.showAlert(
         `❌ လက်ကျန်ငွေ မလုံလောက်ပါဘူး။\n\nလက်ရှိငွေ: ${currentBalance.toLocaleString()} MMK\nကျသင့်ငွေ: ${productPrice.toLocaleString()} MMK`,
       );
     }
 
-    // အတည်ပြုချက်တောင်းတဲ့အပိုင်းကို ဆက်သွားမယ်...
+    if (product.type === "AUTO") {
+      confirmPurchase(product);
+    } else {
+      setSelectedProduct(product);
+      setShowModal(true);
+    }
+  };
+
+  const validateMLBB = async () => {
+    if (!gameForm.playerId || !gameForm.serverId)
+      return tg?.showAlert("ID နှင့် Server ဖြည့်ပါ");
+
+    setIsValidating(true);
+    try {
+      const res = await axios.get(
+        `https://cekidml.caliph.dev/api/validasi?id=${gameForm.playerId}&serverid=${gameForm.serverId}`,
+      );
+      if (res.data.status === "success") {
+        setGameForm((prev) => ({
+          ...prev,
+          nickname: res.data.result.nickname,
+        }));
+        tg?.HapticFeedback.notificationOccurred("success");
+      } else {
+        tg?.showAlert("❌ အကောင့်ရှာမတွေ့ပါ။ ID ပြန်စစ်ပေးပါ။");
+      }
+    } catch (e) {
+      tg?.showAlert("⚠️ Validation API ခေတ္တချို့ယွင်းနေပါသည်။");
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const confirmPurchase = async (product, gameData = null) => {
     tg?.showConfirm(
-      `ဝယ်ယူရန် သေချာပါသလား?\n${product.name} - ${productPrice.toLocaleString()} MMK`,
+      `ဝယ်ယူရန် သေချာပါသလား?\n${product.name}`,
       async (confirmed) => {
         if (!confirmed) return;
-
-        // ၂။ အတည်ပြုချက်တောင်းမယ်
-
         try {
-          setSubmitting(true); // ခလုတ်ကို ခေတ္တပိတ်ထားမယ်
-
+          setSubmitting(true);
           const tid = tg?.initDataUnsafe?.user?.id || "1776339525";
 
-          // Backend API သို့ ပို့မယ်
-          // Note: Backend endpoint က 'purchase' ဖြစ်ရပါမယ်
-          const response = await axios.post(`${API_BASE_URL}/admin/purchase`, {
+          const payload = {
             telegramId: tid.toString(),
             productId: product.id,
-          });
+            ...(gameData && {
+              playerId: gameData.playerId,
+              serverId: gameData.serverId,
+              nickname: gameData.nickname,
+            }),
+          };
 
-          if (response.data) {
+          const res = await axios.post(
+            `${API_BASE_URL}/admin/purchase`,
+            payload,
+          );
+
+          if (res.data) {
             tg?.HapticFeedback.notificationOccurred("success");
             tg?.showAlert("✅ ဝယ်ယူမှု အောင်မြင်ပါသည်။");
-
-            // ၃။ Data တွေကို ပြန် Update လုပ်မယ် (Balance လျော့သွားအောင်)
+            setShowModal(false);
+            setGameForm({ playerId: "", serverId: "", nickname: "" });
             fetchData();
             setCurrentView("profile");
           }
         } catch (err) {
-          console.error("Purchase Error:", err);
-          const msg = err.response?.data?.message || "ဝယ်ယူမှု မအောင်မြင်ပါ။";
-          tg?.showAlert(`❌ Error: ${msg}`);
+          tg?.showAlert(
+            `❌ Error: ${err.response?.data?.message || "ဝယ်ယူမှု မအောင်မြင်ပါ။"}`,
+          );
         } finally {
           setSubmitting(false);
         }
@@ -118,14 +157,14 @@ const UserProfileMini = () => {
     );
   };
 
-  // --- Logic for Deposit Submission ---
+  // --- Deposit Logic ---
   const handleTopUp = async (e) => {
     e.preventDefault();
     if (!form.amount || !form.image)
-      return tg?.showAlert("Please fill all fields and upload a slip");
+      return tg?.showAlert("Please fill all fields");
 
     const formData = new FormData();
-    formData.append("amount", form.amount.toString());
+    formData.append("amount", form.amount);
     formData.append("method", form.method);
     formData.append(
       "telegramId",
@@ -135,30 +174,13 @@ const UserProfileMini = () => {
 
     try {
       setSubmitting(true);
-      const response = await axios.post(
-        `${API_BASE_URL}/admin/deposit-with-image`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-          timeout: 30000,
-        },
-      );
-
-      if (response.data.success) {
-        tg?.HapticFeedback.notificationOccurred("success");
-        tg?.showAlert("✅ Deposit request sent! Waiting for Admin approval.");
-
-        // Reset everything
-        setCurrentView("profile");
-        setForm({ amount: "", method: "KPay", image: null, preview: null });
-        if (fileInputRef.current) fileInputRef.current.value = "";
-
-        // Refresh history to show "Pending" status
-        fetchData();
-      }
+      await axios.post(`${API_BASE_URL}/admin/deposit-with-image`, formData);
+      tg?.showAlert("✅ Deposit request sent!");
+      setCurrentView("profile");
+      setForm({ amount: "", method: "KPay", image: null, preview: null });
+      fetchData();
     } catch (err) {
-      console.error("Upload Error:", err);
-      tg?.showAlert("Upload failed. Please try again.");
+      tg?.showAlert("Upload failed.");
     } finally {
       setSubmitting(false);
     }
@@ -186,12 +208,12 @@ const UserProfileMini = () => {
             <ChevronLeft size={20} />
           </button>
         ) : (
-          <div className="h-10 w-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold shadow-indigo-200 shadow-lg">
+          <div className="h-10 w-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
             {userData?.firstName?.charAt(0)}
           </div>
         )}
         <div>
-          <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-tighter leading-none mb-1">
+          <p className="text-[9px] font-bold text-indigo-500 uppercase leading-none mb-1">
             {currentView === "profile" ? "Your Account" : currentView}
           </p>
           <h1 className="font-bold text-gray-900 leading-none">
@@ -207,7 +229,7 @@ const UserProfileMini = () => {
         {currentView === "shop" && (
           <ShopView
             products={products}
-            onBuy={handlePurchase}
+            onBuy={handlePurchaseClick}
             loading={submitting}
           />
         )}
@@ -222,7 +244,21 @@ const UserProfileMini = () => {
         )}
       </div>
 
-      {/* Persistent Bottom Nav */}
+      {/* Game Input Modal */}
+      {showModal && (
+        <GameInputModal
+          product={selectedProduct}
+          form={gameForm}
+          setForm={setGameForm}
+          onCancel={() => setShowModal(false)}
+          onConfirm={confirmPurchase}
+          onValidate={validateMLBB}
+          loading={submitting}
+          validating={isValidating}
+        />
+      )}
+
+      {/* Bottom Nav */}
       <div className="fixed bottom-6 left-6 right-6 h-16 bg-gray-900 rounded-2xl flex items-center justify-around px-4 shadow-2xl z-50">
         <NavBtn
           act={currentView === "profile"}
@@ -244,7 +280,8 @@ const UserProfileMini = () => {
   );
 };
 
-// --- Sub-Component: Profile & History ---
+// --- Sub Components ---
+
 const ProfileView = ({ data, setView }) => (
   <div className="space-y-6 animate-in fade-in duration-500">
     <div className="bg-indigo-600 p-8 rounded-[2rem] text-white shadow-xl">
@@ -256,13 +293,13 @@ const ProfileView = ({ data, setView }) => (
       <div className="flex gap-3 mt-6">
         <button
           onClick={() => setView("topup")}
-          className="flex-1 bg-white text-indigo-600 py-3 rounded-xl font-bold text-sm shadow-sm active:scale-95 transition-transform"
+          className="flex-1 bg-white text-indigo-600 py-3 rounded-xl font-bold text-sm"
         >
           Top Up
         </button>
         <button
           onClick={() => setView("shop")}
-          className="flex-1 bg-indigo-500/50 text-white border border-indigo-400 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform"
+          className="flex-1 bg-indigo-500/50 text-white border border-indigo-400 py-3 rounded-xl font-bold text-sm"
         >
           Shop
         </button>
@@ -274,134 +311,36 @@ const ProfileView = ({ data, setView }) => (
         <History size={18} className="text-indigo-600" /> Recent History
       </h3>
       <div className="space-y-5">
-        {data?.deposits?.length > 0 ? (
-          data.deposits.slice(0, 8).map((d, i) => {
-            const status = d.status?.toLowerCase() || "pending";
-            return (
-              <div key={i} className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`p-2 rounded-lg ${status === "rejected" ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}
-                  >
-                    <ArrowDownLeft size={16} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">Deposit</p>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                      {d.method}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p
-                    className={`font-bold text-sm ${status === "rejected" ? "text-red-600" : "text-emerald-600"}`}
-                  >
-                    {status === "rejected" ? "" : "+"}
-                    {Number(d.amount).toLocaleString()}
-                  </p>
-                  <span
-                    className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter border ${
-                      status === "pending"
-                        ? "bg-amber-50 text-amber-600 border-amber-200"
-                        : status === "approved"
-                          ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                          : "bg-red-50 text-red-600 border-red-200"
-                    }`}
-                  >
-                    {status}
-                  </span>
-                </div>
+        {(data?.deposits || []).slice(0, 5).map((d, i) => (
+          <div key={i} className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+                <ArrowDownLeft size={16} />
               </div>
-            );
-          })
-        ) : (
-          <div className="text-center py-6">
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">
-              No activity yet
-            </p>
+              <div>
+                <p className="text-sm font-bold text-gray-900">Deposit</p>
+                <p className="text-[10px] text-gray-400 font-bold uppercase">
+                  {d.method}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-bold text-sm text-emerald-600">
+                +{Number(d.amount).toLocaleString()}
+              </p>
+              <span
+                className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase border ${d.status === "PENDING" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"}`}
+              >
+                {d.status}
+              </span>
+            </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   </div>
 );
 
-// --- Sub-Component: TopUp Form ---
-const TopUpView = ({ form, setForm, onSubmit, loading, fileInputRef }) => (
-  <form
-    onSubmit={onSubmit}
-    className="bg-white p-6 rounded-[2rem] shadow-sm space-y-4 animate-in slide-in-from-left-4"
-  >
-    <div className="mb-2">
-      <h3 className="font-bold text-xl text-gray-900">Deposit Funds</h3>
-      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-        Send slip to approval
-      </p>
-    </div>
-
-    <select
-      className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-700 outline-none appearance-none"
-      value={form.method}
-      onChange={(e) => setForm({ ...form, method: e.target.value })}
-    >
-      <option value="KPay">KPay</option>
-      <option value="WavePay">WavePay</option>
-    </select>
-
-    <input
-      type="number"
-      placeholder="Enter Amount"
-      className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-700 outline-none placeholder:text-gray-300"
-      value={form.amount}
-      onChange={(e) => setForm({ ...form, amount: e.target.value })}
-    />
-
-    <div
-      onClick={() => document.getElementById("slip").click()}
-      className="w-full h-44 border-2 border-dashed border-gray-100 rounded-[2rem] flex flex-col items-center justify-center relative overflow-hidden bg-gray-50/50 hover:bg-gray-50 transition-colors"
-    >
-      {form.preview ? (
-        <img
-          src={form.preview}
-          className="w-full h-full object-cover"
-          alt="Preview"
-        />
-      ) : (
-        <>
-          <div className="p-3 bg-white rounded-full shadow-sm mb-2 text-indigo-600">
-            <ImageIcon size={20} />
-          </div>
-          <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
-            Upload Payment Slip
-          </p>
-        </>
-      )}
-    </div>
-
-    <input
-      id="slip"
-      type="file"
-      ref={fileInputRef}
-      hidden
-      accept="image/*"
-      onChange={(e) => {
-        const file = e.target.files[0];
-        if (file)
-          setForm({ ...form, image: file, preview: URL.createObjectURL(file) });
-      }}
-    />
-
-    <button
-      disabled={loading}
-      className="w-full bg-indigo-600 text-white py-4 rounded-[1.5rem] font-bold shadow-lg shadow-indigo-100 flex justify-center items-center active:scale-95 transition-transform disabled:opacity-50"
-    >
-      {loading ? <Loader2 className="animate-spin" /> : "Confirm Deposit"}
-    </button>
-  </form>
-);
-
-// --- Sub-Component: Shop Grid ---
-// --- Sub-Component: Shop Grid ---
 const ShopView = ({ products, onBuy, loading }) => (
   <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-right-4">
     {products.map((p) => (
@@ -410,11 +349,10 @@ const ShopView = ({ products, onBuy, loading }) => (
         className="bg-white p-4 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col"
       >
         <div className="h-28 w-full bg-indigo-50 rounded-2xl mb-3 flex items-center justify-center font-black text-indigo-600 text-2xl overflow-hidden">
-          {/* ပုံရှိရင် ပုံပြမယ် မရှိရင် စာလုံးပြမယ် */}
           {p.image ? (
             <img
               src={`${API_BASE_URL}/uploads/${p.image}`}
-              alt={p.name}
+              alt=""
               className="w-full h-full object-cover"
             />
           ) : (
@@ -431,24 +369,152 @@ const ShopView = ({ products, onBuy, loading }) => (
         <button
           disabled={loading}
           onClick={() => onBuy(p)}
-          className="w-full mt-3 bg-gray-900 text-white py-2 rounded-xl text-[10px] font-bold active:scale-95 transition-transform disabled:bg-gray-400"
+          className="w-full mt-3 bg-gray-900 text-white py-2 rounded-xl text-[10px] font-bold disabled:bg-gray-400"
         >
-          {loading ? "PROCESSING..." : "BUY NOW"}
+          {loading ? "..." : "BUY NOW"}
         </button>
       </div>
     ))}
   </div>
 );
 
-// --- Helper: Nav Button ---
+const TopUpView = ({ form, setForm, onSubmit, loading, fileInputRef }) => (
+  <form
+    onSubmit={onSubmit}
+    className="bg-white p-6 rounded-[2rem] shadow-sm space-y-4"
+  >
+    <div>
+      <h3 className="font-bold text-xl">Deposit Funds</h3>
+      <p className="text-[10px] text-gray-400 font-bold uppercase">
+        Send slip to approval
+      </p>
+    </div>
+    <select
+      className="w-full p-4 bg-gray-50 rounded-2xl font-bold outline-none"
+      value={form.method}
+      onChange={(e) => setForm({ ...form, method: e.target.value })}
+    >
+      <option value="KPay">KPay</option>
+      <option value="WavePay">WavePay</option>
+    </select>
+    <input
+      type="number"
+      placeholder="Amount"
+      className="w-full p-4 bg-gray-50 rounded-2xl font-bold outline-none"
+      value={form.amount}
+      onChange={(e) => setForm({ ...form, amount: e.target.value })}
+    />
+    <div
+      onClick={() => fileInputRef.current.click()}
+      className="w-full h-44 border-2 border-dashed border-gray-100 rounded-[2rem] flex flex-col items-center justify-center overflow-hidden bg-gray-50/50"
+    >
+      {form.preview ? (
+        <img src={form.preview} className="w-full h-full object-cover" alt="" />
+      ) : (
+        <ImageIcon className="text-gray-300" />
+      )}
+    </div>
+    <input
+      type="file"
+      ref={fileInputRef}
+      hidden
+      accept="image/*"
+      onChange={(e) => {
+        const file = e.target.files[0];
+        if (file)
+          setForm({ ...form, image: file, preview: URL.createObjectURL(file) });
+      }}
+    />
+    <button
+      disabled={loading}
+      className="w-full bg-indigo-600 text-white py-4 rounded-[1.5rem] font-bold"
+    >
+      {loading ? (
+        <Loader2 className="animate-spin mx-auto" />
+      ) : (
+        "Confirm Deposit"
+      )}
+    </button>
+  </form>
+);
+
+const GameInputModal = ({
+  product,
+  form,
+  setForm,
+  onCancel,
+  onConfirm,
+  onValidate,
+  loading,
+  validating,
+}) => {
+  const isMLBB = product?.name.toUpperCase().includes("MLBB");
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end justify-center p-4">
+      <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-5 animate-in slide-in-from-bottom-full duration-300">
+        <div className="text-center">
+          <h3 className="text-xl font-black">{product?.name}</h3>
+          <p className="text-xs text-gray-400 font-bold uppercase mt-1">
+            Game Details
+          </p>
+        </div>
+        <div className="space-y-3">
+          <input
+            placeholder="Player ID"
+            className="w-full p-4 bg-gray-50 rounded-2xl font-bold outline-none"
+            value={form.playerId}
+            onChange={(e) => setForm({ ...form, playerId: e.target.value })}
+          />
+          {isMLBB && (
+            <div className="flex gap-2">
+              <input
+                placeholder="Server ID"
+                className="w-full p-4 bg-gray-50 rounded-2xl font-bold outline-none flex-1"
+                value={form.serverId}
+                onChange={(e) => setForm({ ...form, serverId: e.target.value })}
+              />
+              <button
+                onClick={onValidate}
+                disabled={validating}
+                className="bg-indigo-50 text-indigo-600 px-4 rounded-2xl font-black text-xs"
+              >
+                {validating ? "..." : "CHECK"}
+              </button>
+            </div>
+          )}
+          {form.nickname && (
+            <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+              <p className="text-[10px] text-emerald-600 font-black uppercase">
+                Nickname
+              </p>
+              <p className="font-bold text-emerald-700">{form.nickname}</p>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-4 font-bold text-gray-400 bg-gray-50 rounded-2xl"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(product, form)}
+            disabled={loading || (isMLBB && !form.nickname)}
+            className="flex-1 py-4 font-bold text-white bg-indigo-600 rounded-2xl shadow-lg disabled:opacity-50"
+          >
+            {loading ? "..." : "Confirm"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const NavBtn = ({ act, icon, onClick }) => (
   <button
     onClick={onClick}
-    className={`p-3 rounded-2xl transition-all duration-300 ${
-      act
-        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/40"
-        : "text-gray-500 hover:text-gray-300"
-    }`}
+    className={`p-3 rounded-2xl transition-all ${act ? "bg-indigo-600 text-white shadow-lg" : "text-gray-500"}`}
   >
     {React.cloneElement(icon, { size: 22 })}
   </button>
