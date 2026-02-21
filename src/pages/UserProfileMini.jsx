@@ -65,16 +65,27 @@ const UserProfileMini = () => {
 
   // --- Logic for Purchasing Product ---
   const handlePurchase = async (product) => {
-    // ၁။ ပိုက်ဆံရှိမရှိ အရင်စစ်မယ်
-    if (userData.balance < product.price) {
-      return tg?.showAlert("❌ လက်ကျန်ငွေ မလုံလောက်ပါဘူး။ ငွေအရင်ဖြည့်ပေးပါ။");
+    // ၁။ Balance နဲ့ Price ကို ကိန်းဂဏန်းအစစ်ဖြစ်အောင် အရင်ပြောင်းမယ်
+    const currentBalance = Number(userData?.balance || 0);
+    const productPrice = Number(product?.price || 0);
+
+    // Debug လုပ်ကြည့်ဖို့ (Browser Console မှာ ကြည့်လို့ရတယ်)
+    console.log("Balance:", currentBalance, "Price:", productPrice);
+
+    // ၂။ ကိန်းဂဏန်းအချင်းချင်း ပြန်နှိုင်းယှဉ်မယ်
+    if (currentBalance < productPrice) {
+      return tg?.showAlert(
+        `❌ လက်ကျန်ငွေ မလုံလောက်ပါဘူး။\n\nလက်ရှိငွေ: ${currentBalance.toLocaleString()} MMK\nကျသင့်ငွေ: ${productPrice.toLocaleString()} MMK`,
+      );
     }
 
-    // ၂။ အတည်ပြုချက်တောင်းမယ်
+    // အတည်ပြုချက်တောင်းတဲ့အပိုင်းကို ဆက်သွားမယ်...
     tg?.showConfirm(
-      `ဝယ်ယူရန် သေချာပါသလား?\n${product.name} - ${Number(product.price).toLocaleString()} MMK`,
+      `ဝယ်ယူရန် သေချာပါသလား?\n${product.name} - ${productPrice.toLocaleString()} MMK`,
       async (confirmed) => {
         if (!confirmed) return;
+
+        // ၂။ အတည်ပြုချက်တောင်းမယ်
 
         try {
           setSubmitting(true); // ခလုတ်ကို ခေတ္တပိတ်ထားမယ်
