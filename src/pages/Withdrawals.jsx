@@ -5,8 +5,7 @@ import { Check, X, RefreshCw, AlertCircle } from "lucide-react";
 export default function Withdrawals() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const API_URL =
-    "https://telegram-ecommerce-bot-backend-production.up.railway.app/admin";
+  const API_URL = "https://vpnbot-production-e78a.up.railway.app/admin";
 
   const fetchData = async () => {
     setLoading(true);

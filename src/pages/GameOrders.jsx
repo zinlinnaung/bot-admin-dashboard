@@ -24,8 +24,7 @@ export default function GameOrders() {
   const [meta, setMeta] = useState({ total: 0, lastPage: 1 });
   const limit = 10;
 
-  const API_URL =
-    "https://telegram-ecommerce-bot-backend-production.up.railway.app/admin";
+  const API_URL = "https://vpnbot-production-e78a.up.railway.app/admin";
 
   const fetchOrders = async () => {
     setLoading(true);

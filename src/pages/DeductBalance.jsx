@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { UserMinus, Search, AlertCircle, Loader2 } from "lucide-react";
 
-const API_URL =
-  "https://telegram-ecommerce-bot-backend-production.up.railway.app/admin";
+const API_URL = "https://vpnbot-production-e78a.up.railway.app/admin";
 
 export default function DeductBalance() {
   const [telegramId, setTelegramId] = useState("");

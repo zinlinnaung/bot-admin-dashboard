@@ -88,17 +88,23 @@ export default function Layout() {
             label="Game Orders"
             active={location.pathname === "/order"}
           />
-          <SidebarItem
+          {/* <SidebarItem
             to="/deduct"
             icon={Package}
             label="Deduct Balance"
             active={location.pathname === "/deduct"}
-          />
+          /> */}
           <SidebarItem
             to="/2d"
             icon={Package}
             label="2D Admin"
             active={location.pathname === "/2d"}
+          />
+          <SidebarItem
+            to="/lucky-draw"
+            icon={Package}
+            label="Lucky Draw"
+            active={location.pathname === "/lucky-draw"}
           />
         </nav>
 

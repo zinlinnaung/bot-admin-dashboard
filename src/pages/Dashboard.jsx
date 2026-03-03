@@ -49,10 +49,10 @@ export default function Dashboard() {
       // Fetch Stats & Settings together
       const [statsRes, settingsRes] = await Promise.all([
         axios.get(
-          "https://telegram-ecommerce-bot-backend-production.up.railway.app/admin/dashboard-stats",
+          "https://vpnbot-production-e78a.up.railway.app/admin/dashboard-stats",
         ),
         axios.get(
-          "https://telegram-ecommerce-bot-backend-production.up.railway.app/admin/settings",
+          "https://vpnbot-production-e78a.up.railway.app/admin/settings",
         ),
       ]);
 
@@ -88,7 +88,7 @@ export default function Dashboard() {
     setSettleLoading(true);
     try {
       const res = await axios.post(
-        "https://telegram-ecommerce-bot-backend-production.up.railway.app/admin/settle-result",
+        "https://vpnbot-production-e78a.up.railway.app/admin/settle-result",
         {
           type: gameType,
           winNumber: winNum,
@@ -122,7 +122,7 @@ export default function Dashboard() {
     setSaveLoading(true);
     try {
       await axios.post(
-        "https://telegram-ecommerce-bot-backend-production.up.railway.app/admin/update-settings",
+        "https://vpnbot-production-e78a.up.railway.app/admin/update-settings",
         settings,
       );
       alert("ဂိမ်း Settings များ အောင်မြင်စွာ Update လုပ်ပြီးပါပြီ ✅");

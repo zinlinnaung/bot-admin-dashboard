@@ -11,8 +11,7 @@ import {
   ArrowDownLeft,
 } from "lucide-react";
 
-const API_BASE_URL =
-  "https://telegram-ecommerce-bot-backend-production.up.railway.app";
+const API_BASE_URL = "https://vpnbot-production-e78a.up.railway.app";
 
 const UserProfileMini = () => {
   const [userData, setUserData] = useState(null);
