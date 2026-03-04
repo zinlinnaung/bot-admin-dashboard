@@ -410,7 +410,7 @@ export default function LuckyDrawManager() {
                   Award Prize
                 </label>
                 <select
-                  className="..."
+                  className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl font-bold text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-rose-500"
                   value={newPrize}
                   onChange={(e) => setNewPrize(e.target.value)}
                 >
