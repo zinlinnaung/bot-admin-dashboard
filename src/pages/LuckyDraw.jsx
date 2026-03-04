@@ -410,20 +410,14 @@ export default function LuckyDrawManager() {
                   Award Prize
                 </label>
                 <select
-                  className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl font-bold text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-rose-500"
+                  className="..."
                   value={newPrize}
                   onChange={(e) => setNewPrize(e.target.value)}
                 >
                   <option value="">Select Prize...</option>
-                  <option value="1st Prize 1049 Dia">
-                    1st Prize (1049 Diamonds)
-                  </option>
-                  <option value="2nd Prize Weekly Pass">
-                    2nd Prize (Weekly Pass)
-                  </option>
-                  <option value="3rd Prize 284 Dia">
-                    3rd Prize (284 Diamonds)
-                  </option>
+                  <option value="1049_DIA">1st Prize (1049 Diamonds)</option>
+                  <option value="WEEKLY_PASS">2nd Prize (Weekly Pass)</option>
+                  <option value="11_DIA">3rd Prize (11 Diamonds)</option>
                 </select>
               </div>
 
