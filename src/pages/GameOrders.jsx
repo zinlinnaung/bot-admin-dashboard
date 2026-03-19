@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Hash,
   ArrowUpRight,
+  Power, // New Icon
+  AlertCircle, // New Icon
 } from "lucide-react";
 
 export default function GameOrders() {
@@ -19,12 +21,56 @@ export default function GameOrders() {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("PENDING");
 
+  // --- New States for Settings ---
+  const [isOpen, setIsOpen] = useState(true);
+  const [reason, setReason] = useState("");
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
   // Pagination States
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ total: 0, lastPage: 1 });
   const limit = 10;
 
   const API_URL = "https://vpnbot-production-e78a.up.railway.app/admin";
+  const SETTINGS_API_URL =
+    "https://vpnbot-production-e78a.up.railway.app/admin"; // Adjust if different
+
+  // --- Fetch Settings Logic ---
+  const fetchSettings = async () => {
+    try {
+      const res = await axios.get(`${SETTINGS_API_URL}/game-purchase`);
+      setIsOpen(res.data.isOpen);
+      setReason(res.data.reason || "");
+    } catch (err) {
+      console.error("Fetch Settings Error:", err);
+    }
+  };
+
+  const handleUpdateStatus = async () => {
+    setIsUpdatingStatus(true);
+
+    // Toggle the current state for the request
+    const nextStatus = !isOpen;
+
+    try {
+      const res = await axios.post(`${SETTINGS_API_URL}/game-purchase`, {
+        isOpen: nextStatus,
+        reason: nextStatus ? "" : reason,
+      });
+
+      // CRITICAL: Update the UI using the data returned FROM the server
+      setIsOpen(res.data.isOpen);
+      setReason(res.data.reason || "");
+
+      alert(`Shop is now ${res.data.isOpen ? "OPEN" : "CLOSED"}`);
+    } catch (err) {
+      console.error("Update Error:", err);
+      alert("Update failed. Please check connection.");
+      fetchSettings(); // Re-fetch to sync UI with actual DB state
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -40,6 +86,10 @@ export default function GameOrders() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSettings(); // Fetch shop status on mount
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -88,6 +138,38 @@ export default function GameOrders() {
             <p className="text-gray-500 font-medium ml-12">
               Manage and track real-time gaming transactions
             </p>
+          </div>
+
+          {/* --- New Open/Close Controls --- */}
+          <div className="flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col gap-1 min-w-[200px]">
+              <div className="flex items-center gap-2 px-2">
+                <AlertCircle size={14} className="text-gray-400" />
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                  Close Reason (Public)
+                </span>
+              </div>
+              <input
+                type="text"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. System Maintenance..."
+                className="text-xs font-medium px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+              />
+            </div>
+
+            <button
+              onClick={handleUpdateStatus}
+              disabled={isUpdatingStatus}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${
+                isOpen
+                  ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white"
+                  : "bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white"
+              } ${isUpdatingStatus ? "opacity-50 animate-pulse" : ""}`}
+            >
+              <Power size={16} />
+              {isOpen ? "SHOP OPEN" : "SHOP CLOSED"}
+            </button>
           </div>
 
           <div className="flex items-center gap-4 bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100">

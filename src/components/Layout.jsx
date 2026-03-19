@@ -45,6 +45,12 @@ export default function Layout() {
             active={location.pathname === "/"}
           />
           <SidebarItem
+            to="/broadcast"
+            icon={LayoutDashboard}
+            label="Broadcast Manager"
+            active={location.pathname === "/broadcast"}
+          />
+          <SidebarItem
             to="/deposits"
             icon={ArrowDownCircle}
             label="Deposits"

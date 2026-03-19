@@ -14,6 +14,7 @@ import UserProfileMini from "./pages/UserProfileMini";
 import DeductBalance from "./pages/DeductBalance";
 import TwoDAdmin from "./pages/TwoDAdmin";
 import LuckyDraw from "./pages/LuckyDraw";
+import BroadcastManager from "./pages/BroadcastManager";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
           <Route path="/deduct" element={<DeductBalance />} />
           <Route path="/2d" element={<TwoDAdmin />} />
           <Route path="/lucky-draw" element={<LuckyDraw />} />
+          <Route path="/broadcast" element={<BroadcastManager />} />
           {/* Catch-all inside the layout */}
           <Route path="*" element={<Dashboard />} />
         </Route>
