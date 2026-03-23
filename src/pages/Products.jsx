@@ -35,6 +35,9 @@ const CATEGORY_MAP = {
   VPN: ["Hiddify", "Outline", "1.1.1.1", "Surfshark"],
   Netflix: ["Shared Screen", "Private Profile", "Full Account"],
   Premium: ["Canva", "Spotify", "YouTube", "Other"],
+  Spotify: ["Premium Account", "Family Plan", "Duo Plan"],
+  Canva: ["Pro Account", "Edu Account(lifetime)", "Other"],
+  Capcut: ["Pro Account", "Mobile Pro", "Other"],
 };
 
 export default function Products() {
@@ -50,6 +53,43 @@ export default function Products() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [isViewKeysOpen, setIsViewKeysOpen] = useState(false);
+
+  // --- New State ---
+  const [isBulkPriceModalOpen, setIsBulkPriceModalOpen] = useState(false);
+  const [bulkPriceAmount, setBulkPriceAmount] = useState("");
+
+  // --- New Handler ---
+  const handleBulkPriceUpdate = async (e) => {
+    e.preventDefault();
+    const amount = Number(bulkPriceAmount);
+
+    if (!amount || isNaN(amount)) {
+      alert("Please enter a valid amount.");
+      return;
+    }
+
+    const confirmMsg =
+      amount > 0
+        ? `Are you sure you want to INCREASE all prices by ${amount.toLocaleString()} MMK?`
+        : `Are you sure you want to DECREASE all prices by ${Math.abs(amount).toLocaleString()} MMK?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setSubmitting(true);
+    try {
+      const res = await axios.patch(`${API_URL}/products/bulk-add-price`, {
+        amount,
+      });
+      alert(res.data.message);
+      setIsBulkPriceModalOpen(false);
+      setBulkPriceAmount("");
+      fetchProducts(); // Refresh the list to see new prices
+    } catch (error) {
+      alert(error.response?.data?.message || "Bulk update failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const [currentProduct, setCurrentProduct] = useState({
     id: null,
@@ -217,6 +257,26 @@ export default function Products() {
           >
             <Plus size={20} /> Add New Product
           </button>
+
+          <div className="flex flex-wrap gap-3">
+            {/* New Bulk Button */}
+            <button
+              onClick={() => setIsBulkPriceModalOpen(true)}
+              className="bg-white border-2 border-slate-100 hover:border-blue-100 text-slate-600 px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 shadow-sm"
+            >
+              <TrendingUp size={20} className="text-blue-600" /> Bulk Price
+            </button>
+
+            {/* Existing Add Product Button */}
+            <button
+              onClick={() => {
+                /* ... existing logic ... */
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-200 font-bold transition-all active:scale-95"
+            >
+              <Plus size={20} /> Add New Product
+            </button>
+          </div>
         </div>
 
         {/* --- Quick Stats --- */}
@@ -436,6 +496,68 @@ export default function Products() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* --- BULK PRICE UPDATE MODAL --- */}
+        {isBulkPriceModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[130] flex items-center justify-center p-4">
+            <div className="bg-white rounded-[3rem] w-full max-w-md p-8 shadow-2xl">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900">
+                    Global Pricing
+                  </h3>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    Update all products at once
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsBulkPriceModalOpen(false)}
+                  className="p-2 hover:bg-slate-100 rounded-full"
+                >
+                  <X />
+                </button>
+              </div>
+
+              <form onSubmit={handleBulkPriceUpdate} className="space-y-6">
+                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-start gap-3">
+                  <AlertCircle className="text-blue-600 shrink-0" size={20} />
+                  <p className="text-[11px] text-blue-700 font-medium leading-relaxed">
+                    Enter a positive number to <b>increase</b> prices, or a
+                    negative number (e.g., -500) to <b>decrease</b> prices. This
+                    affects every product in your inventory.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-slate-400 uppercase ml-2">
+                    Adjustment Amount (MMK)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="e.g. 1000 or -500"
+                    className="w-full bg-slate-50 border border-slate-100 p-5 rounded-2xl font-black text-xl text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={bulkPriceAmount}
+                    onChange={(e) => setBulkPriceAmount(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting || !bulkPriceAmount}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white py-5 rounded-[2rem] font-black flex justify-center items-center gap-2 shadow-xl shadow-slate-200 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Save size={20} />
+                  )}
+                  Update All Prices
+                </button>
+              </form>
+            </div>
           </div>
         )}
 
