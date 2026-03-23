@@ -38,6 +38,7 @@ const CATEGORY_MAP = {
   Spotify: ["Premium Account", "Family Plan", "Duo Plan"],
   Canva: ["Pro Account", "Edu Account(lifetime)", "Other"],
   Capcut: ["Pro Account", "Mobile Pro", "Other"],
+  GiftCard: ["Google Play", "iTunes", "Amazon", "Other"],
 };
 
 export default function Products() {
