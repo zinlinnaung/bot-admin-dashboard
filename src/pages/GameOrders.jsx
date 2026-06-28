@@ -31,9 +31,8 @@ export default function GameOrders() {
   const [meta, setMeta] = useState({ total: 0, lastPage: 1 });
   const limit = 10;
 
-  const API_URL = "https://vpnbot-production-e78a.up.railway.app/admin";
-  const SETTINGS_API_URL =
-    "https://vpnbot-production-e78a.up.railway.app/admin"; // Adjust if different
+  const API_URL = "https://api.prototypeconnect.xyz/admin";
+  const SETTINGS_API_URL = "https://api.prototypeconnect.xyz/admin"; // Adjust if different
 
   // --- Fetch Settings Logic ---
   const fetchSettings = async () => {

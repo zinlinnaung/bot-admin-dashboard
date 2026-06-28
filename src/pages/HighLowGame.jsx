@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, RotateCcw, ChevronLeft, Loader2 } from "lucide-react"; // Added Loader2
 import confetti from "canvas-confetti";
 
-const API_BASE_URL = "https://vpnbot-production-e78a.up.railway.app";
+const API_BASE_URL = "https://api.prototypeconnect.xyz";
 
 const HighLowGame = () => {
   const [balance, setBalance] = useState(0);

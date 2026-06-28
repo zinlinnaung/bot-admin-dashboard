@@ -11,7 +11,7 @@ import {
   ArrowDownLeft,
 } from "lucide-react";
 
-const API_BASE_URL = "https://vpnbot-production-e78a.up.railway.app";
+const API_BASE_URL = "https://api.prototypeconnect.xyz";
 
 const UserProfileMini = () => {
   const [userData, setUserData] = useState(null);

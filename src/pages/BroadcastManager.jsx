@@ -18,7 +18,7 @@ import {
   Zap, // Added for Callback icon
 } from "lucide-react";
 
-const API_URL = "https://vpnbot-production-e78a.up.railway.app/admin";
+const API_URL = "https://api.prototypeconnect.xyz/admin";
 
 export default function BroadcastManager() {
   const [history, setHistory] = useState([]);

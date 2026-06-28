@@ -23,7 +23,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-const API_URL = "https://vpnbot-production-e78a.up.railway.app/admin";
+const API_URL = "https://api.prototypeconnect.xyz/admin";
 
 export default function LuckyDrawManager() {
   const [participants, setParticipants] = useState([]);

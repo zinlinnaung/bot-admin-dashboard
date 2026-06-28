@@ -22,7 +22,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 
-const API_URL = "https://vpnbot-production-e78a.up.railway.app/admin";
+const API_URL = "https://api.prototypeconnect.xyz/admin";
 
 const PRODUCT_TYPE = {
   AUTO: "AUTO",
@@ -238,7 +238,7 @@ export default function Products() {
               Manage your digital stock and services
             </p>
           </div>
-          <button
+          {/* <button
             onClick={() => {
               setCurrentProduct({
                 id: null,
@@ -257,7 +257,7 @@ export default function Products() {
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-200 font-bold transition-all active:scale-95"
           >
             <Plus size={20} /> Add New Product
-          </button>
+          </button> */}
 
           <div className="flex flex-wrap gap-3">
             {/* New Bulk Button */}
@@ -271,7 +271,19 @@ export default function Products() {
             {/* Existing Add Product Button */}
             <button
               onClick={() => {
-                /* ... existing logic ... */
+                setCurrentProduct({
+                  id: null,
+                  name: "",
+                  category: "Gaming",
+                  subCategory: CATEGORY_MAP["Gaming"][0],
+                  price: "",
+                  description: "",
+                  type: PRODUCT_TYPE.MANUAL,
+                  usageLimitGB: "",
+                  packageDays: "",
+                  isFreeTrial: false,
+                });
+                setIsModalOpen(true);
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-200 font-bold transition-all active:scale-95"
             >

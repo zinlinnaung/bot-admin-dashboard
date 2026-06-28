@@ -15,6 +15,7 @@ import DeductBalance from "./pages/DeductBalance";
 import TwoDAdmin from "./pages/TwoDAdmin";
 import LuckyDraw from "./pages/LuckyDraw";
 import BroadcastManager from "./pages/BroadcastManager";
+import DigitalStoreApp from "./pages/Landing/DigitalStoreApp";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
           <Route path="/2d" element={<TwoDAdmin />} />
           <Route path="/lucky-draw" element={<LuckyDraw />} />
           <Route path="/broadcast" element={<BroadcastManager />} />
+
           {/* Catch-all inside the layout */}
           <Route path="*" element={<Dashboard />} />
         </Route>
@@ -41,6 +43,7 @@ function App() {
         {/* This route is outside, so it will be a clean, blank page */}
         <Route path="/game" element={<HighLowGame />} />
         <Route path="/profile" element={<UserProfileMini />} />
+        <Route path="/landing" element={<DigitalStoreApp />} />
       </Routes>
     </Router>
   );

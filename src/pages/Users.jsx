@@ -21,7 +21,7 @@ import {
   Settings, // Added for Tab icon
 } from "lucide-react";
 
-const API_URL = "https://vpnbot-production-e78a.up.railway.app/admin";
+const API_URL = "https://api.prototypeconnect.xyz/admin";
 
 export default function Users() {
   const [users, setUsers] = useState([]);

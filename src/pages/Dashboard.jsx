@@ -48,12 +48,8 @@ export default function Dashboard() {
     try {
       // Fetch Stats & Settings together
       const [statsRes, settingsRes] = await Promise.all([
-        axios.get(
-          "https://vpnbot-production-e78a.up.railway.app/admin/dashboard-stats",
-        ),
-        axios.get(
-          "https://vpnbot-production-e78a.up.railway.app/admin/settings",
-        ),
+        axios.get("https://api.prototypeconnect.xyz/admin/dashboard-stats"),
+        axios.get("https://api.prototypeconnect.xyz/admin/settings"),
       ]);
 
       setStats(statsRes.data);
@@ -88,7 +84,7 @@ export default function Dashboard() {
     setSettleLoading(true);
     try {
       const res = await axios.post(
-        "https://vpnbot-production-e78a.up.railway.app/admin/settle-result",
+        "https://api.prototypeconnect.xyz/admin/settle-result",
         {
           type: gameType,
           winNumber: winNum,
@@ -122,7 +118,7 @@ export default function Dashboard() {
     setSaveLoading(true);
     try {
       await axios.post(
-        "https://vpnbot-production-e78a.up.railway.app/admin/update-settings",
+        "https://api.prototypeconnect.xyz/admin/update-settings",
         settings,
       );
       alert("ဂိမ်း Settings များ အောင်မြင်စွာ Update လုပ်ပြီးပါပြီ ✅");

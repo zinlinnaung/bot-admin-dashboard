@@ -6,7 +6,7 @@ const TransactionHistory = () => {
   const [expandedUsers, setExpandedUsers] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
 
-  const API_BASE_URL = "https://vpnbot-production-e78a.up.railway.app";
+  const API_BASE_URL = "https://api.prototypeconnect.xyz";
 
   useEffect(() => {
     fetchTransactions();
