@@ -149,6 +149,12 @@ export default function Products() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      // 1. Create a condition check for the limits
+      const hasLimits =
+        currentProduct.type === PRODUCT_TYPE.API ||
+        (currentProduct.type === PRODUCT_TYPE.MANUAL &&
+          currentProduct.category === "VPN");
+
       const payload = {
         name: currentProduct.name,
         category: currentProduct.category,
@@ -157,14 +163,9 @@ export default function Products() {
         description: currentProduct.description,
         type: currentProduct.type,
         isFreeTrial: currentProduct.isFreeTrial,
-        usageLimitGB:
-          currentProduct.type === PRODUCT_TYPE.API
-            ? Number(currentProduct.usageLimitGB)
-            : null,
-        packageDays:
-          currentProduct.type === PRODUCT_TYPE.API
-            ? Number(currentProduct.packageDays)
-            : null,
+        // 2. Use the new condition here
+        usageLimitGB: hasLimits ? Number(currentProduct.usageLimitGB) : null,
+        packageDays: hasLimits ? Number(currentProduct.packageDays) : null,
       };
 
       if (currentProduct.id) {
@@ -730,17 +731,39 @@ export default function Products() {
                   </div>
                 </div>
 
-                {currentProduct.type === PRODUCT_TYPE.API && (
-                  <div className="p-5 bg-orange-50 rounded-[2rem] border border-orange-100 space-y-4">
-                    <div className="flex items-center gap-2 text-orange-600 font-black text-xs uppercase">
-                      <Zap size={16} /> API Auto-Config
+                {/* --- LIMIT CONFIGURATION BOX --- */}
+                {(currentProduct.type === PRODUCT_TYPE.API ||
+                  (currentProduct.type === PRODUCT_TYPE.MANUAL &&
+                    currentProduct.category === "VPN")) && (
+                  <div
+                    className={`p-5 rounded-[2rem] border space-y-4 transition-all ${
+                      currentProduct.type === PRODUCT_TYPE.API
+                        ? "bg-orange-50 border-orange-100"
+                        : "bg-indigo-50 border-indigo-100"
+                    }`}
+                  >
+                    <div
+                      className={`flex items-center gap-2 font-black text-xs uppercase ${
+                        currentProduct.type === PRODUCT_TYPE.API
+                          ? "text-orange-600"
+                          : "text-indigo-600"
+                      }`}
+                    >
+                      <Zap size={16} />
+                      {currentProduct.type === PRODUCT_TYPE.API
+                        ? "API Auto-Config"
+                        : "VPN Manual Config"}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <input
                         type="number"
                         placeholder="Data (GB)"
-                        className="p-3 rounded-xl border border-orange-200 focus:ring-2 focus:ring-orange-500 outline-none text-sm font-bold"
-                        value={currentProduct.usageLimitGB}
+                        className={`p-3 rounded-xl border focus:ring-2 outline-none text-sm font-bold transition-all ${
+                          currentProduct.type === PRODUCT_TYPE.API
+                            ? "border-orange-200 focus:ring-orange-500"
+                            : "border-indigo-200 focus:ring-indigo-500"
+                        }`}
+                        value={currentProduct.usageLimitGB || ""}
                         onChange={(e) =>
                           setCurrentProduct({
                             ...currentProduct,
@@ -751,8 +774,12 @@ export default function Products() {
                       <input
                         type="number"
                         placeholder="Days"
-                        className="p-3 rounded-xl border border-orange-200 focus:ring-2 focus:ring-orange-500 outline-none text-sm font-bold"
-                        value={currentProduct.packageDays}
+                        className={`p-3 rounded-xl border focus:ring-2 outline-none text-sm font-bold transition-all ${
+                          currentProduct.type === PRODUCT_TYPE.API
+                            ? "border-orange-200 focus:ring-orange-500"
+                            : "border-indigo-200 focus:ring-indigo-500"
+                        }`}
+                        value={currentProduct.packageDays || ""}
                         onChange={(e) =>
                           setCurrentProduct({
                             ...currentProduct,
