@@ -8,7 +8,7 @@ import Products from "./pages/Products";
 
 import HighLowGame from "./pages/HighLowGame";
 import TransactionHistory from "./pages/TransactionHistory";
-import SubtitleTranslator from "./pages/SubtitleTranslator";
+
 import GameOrders from "./pages/GameOrders";
 import UserProfileMini from "./pages/UserProfileMini";
 import DeductBalance from "./pages/DeductBalance";
@@ -16,6 +16,7 @@ import TwoDAdmin from "./pages/TwoDAdmin";
 import LuckyDraw from "./pages/LuckyDraw";
 import BroadcastManager from "./pages/BroadcastManager";
 import DigitalStoreApp from "./pages/Landing/DigitalStoreApp";
+import VpnUsageChecker from "./pages/Users";
 
 function App() {
   return (
@@ -29,7 +30,7 @@ function App() {
           <Route path="/users" element={<Users />} />
           <Route path="/products" element={<Products />} />
           <Route path="/transactions" element={<TransactionHistory />} />
-          <Route path="/subtitle-translator" element={<SubtitleTranslator />} />
+          <Route path="/subtitle-translator" element={<VpnUsageChecker />} />
           <Route path="/order" element={<GameOrders />} />
           <Route path="/deduct" element={<DeductBalance />} />
           <Route path="/2d" element={<TwoDAdmin />} />
