@@ -45,12 +45,8 @@ const UserProfileMini = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const tid = tg?.initDataUnsafe?.user?.id || "1776339525";
-      const userRes = await axios.get(
-        `${API_BASE_URL}/admin/by-telegram/${tid}`,
-      );
       const [details, prods] = await Promise.all([
-        axios.get(`${API_BASE_URL}/admin/users/${userRes.data.id}`),
+        axios.get(`${API_BASE_URL}/admin/me`),
         axios.get(`${API_BASE_URL}/admin/products`),
       ]);
       setUserData(details.data);
@@ -394,7 +390,7 @@ const TopUpView = ({ form, setForm, onSubmit, loading, fileInputRef }) => (
       onChange={(e) => setForm({ ...form, method: e.target.value })}
     >
       <option value="KPay">KPay</option>
-      <option value="WavePay">WavePay</option>
+      <option value="WaveMoney">WaveMoney</option>
     </select>
     <input
       type="number"

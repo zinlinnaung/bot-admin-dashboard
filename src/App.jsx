@@ -17,8 +17,26 @@ import LuckyDraw from "./pages/LuckyDraw";
 import BroadcastManager from "./pages/BroadcastManager";
 import DigitalStoreApp from "./pages/Landing/DigitalStoreApp";
 import VpnUsageChecker from "./pages/Users";
+import { useEffect, useState } from "react";
+import AdminLogin from "./components/AdminLogin";
+import DeletedVpnKeys from "./pages/DeletedVpnKeys";
 
 function App() {
+  const isTelegramWebApp = Boolean(window.Telegram?.WebApp?.initData);
+  const [authenticated, setAuthenticated] = useState(
+    isTelegramWebApp || Boolean(sessionStorage.getItem("adminToken")),
+  );
+
+  useEffect(() => {
+    const expired = () => setAuthenticated(false);
+    window.addEventListener("admin-auth-expired", expired);
+    return () => window.removeEventListener("admin-auth-expired", expired);
+  }, []);
+
+  if (!authenticated) {
+    return <AdminLogin onLogin={() => setAuthenticated(true)} />;
+  }
+
   return (
     <Router>
       <Routes>
@@ -30,6 +48,7 @@ function App() {
           <Route path="/users" element={<Users />} />
           <Route path="/products" element={<Products />} />
           <Route path="/transactions" element={<TransactionHistory />} />
+          <Route path="/deleted-vpn-keys" element={<DeletedVpnKeys />} />
           <Route path="/subtitle-translator" element={<VpnUsageChecker />} />
           <Route path="/order" element={<GameOrders />} />
           <Route path="/deduct" element={<DeductBalance />} />

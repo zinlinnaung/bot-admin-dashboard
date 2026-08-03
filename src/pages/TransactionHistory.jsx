@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { authenticatedFetch } from "../api-auth";
 
 const TransactionHistory = () => {
   const [groupedTransactions, setGroupedTransactions] = useState({});
@@ -14,7 +15,7 @@ const TransactionHistory = () => {
 
   const fetchTransactions = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/transactions`);
+      const res = await authenticatedFetch(`${API_BASE_URL}/admin/transactions`);
       const result = await res.json();
 
       // Group transactions by telegramId

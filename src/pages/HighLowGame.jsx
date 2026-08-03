@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, RotateCcw, ChevronLeft, Loader2 } from "lucide-react"; // Added Loader2
 import confetti from "canvas-confetti";
+import { authenticatedFetch } from "../api-auth";
 
 const API_BASE_URL = "https://api.prototypeconnect.xyz";
 
@@ -29,7 +30,7 @@ const HighLowGame = () => {
     const telegramId = tg?.initDataUnsafe?.user?.id || "1776339525";
 
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_BASE_URL}/admin/by-telegram/${telegramId}`,
       );
 
@@ -67,7 +68,7 @@ const HighLowGame = () => {
 
     try {
       // 3. Call Server
-      const response = await fetch(`${API_BASE_URL}/admin/high-low/play`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/admin/high-low/play`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

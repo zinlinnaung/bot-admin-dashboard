@@ -8,6 +8,7 @@ import {
   LogOut,
   Package,
   Gamepad2, // Added a game icon just in case!
+  ShieldOff,
 } from "lucide-react";
 
 const SidebarItem = ({ to, icon: Icon, label, active }) => (
@@ -27,6 +28,10 @@ const SidebarItem = ({ to, icon: Icon, label, active }) => (
 export default function Layout() {
   // Removed children prop
   const location = useLocation();
+  const logout = () => {
+    sessionStorage.removeItem("adminToken");
+    window.location.href = "/";
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-100 font-sans">
@@ -83,6 +88,12 @@ export default function Layout() {
             active={location.pathname === "/transactions"}
           />
           <SidebarItem
+            to="/deleted-vpn-keys"
+            icon={ShieldOff}
+            label="Deleted VPN Keys"
+            active={location.pathname === "/deleted-vpn-keys"}
+          />
+          <SidebarItem
             to="/subtitle-translator"
             icon={Gamepad2}
             label="Subtitle Translator"
@@ -115,7 +126,7 @@ export default function Layout() {
         </nav>
 
         <div className="p-6 border-t border-gray-800">
-          <button className="flex items-center gap-3 text-gray-500 hover:text-red-400 transition w-full">
+          <button onClick={logout} className="flex items-center gap-3 text-gray-500 hover:text-red-400 transition w-full">
             <LogOut size={20} /> <span>Logout</span>
           </button>
         </div>

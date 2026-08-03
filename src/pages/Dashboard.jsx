@@ -23,7 +23,11 @@ export default function Dashboard() {
     withdrawals: [],
     todayRevenue: 0,
     todayWithdraw: 0,
-    netProfit: 0,
+    todayCashFlow: 0,
+    activeVpnKeys: 0,
+    expiringSoon: 0,
+    deletedVpnKeys: 0,
+    monthlyRevenue: 0,
   });
 
   // 💡 Bet Settings States
@@ -134,6 +138,7 @@ export default function Dashboard() {
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="animate-spin text-indigo-600" size={40} />
       </div>
+
     );
   }
 
@@ -169,10 +174,10 @@ export default function Dashboard() {
           color="bg-rose-500"
         />
         <StatCard
-          title="Net Profit"
-          value={`${(stats.netProfit || 0).toLocaleString()} MMK`}
+          title="Wallet Cash Flow"
+          value={`${(stats.todayCashFlow || 0).toLocaleString()} MMK`}
           icon={TrendingUp}
-          color={stats.netProfit >= 0 ? "bg-emerald-500" : "bg-red-600"}
+          color={stats.todayCashFlow >= 0 ? "bg-emerald-500" : "bg-red-600"}
         />
         <StatCard
           title="Total Users"
@@ -180,6 +185,13 @@ export default function Dashboard() {
           icon={Users}
           color="bg-blue-500"
         />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard title="Active VPN Keys" value={stats.activeVpnKeys || 0} icon={ShieldCheck} color="bg-emerald-600" />
+        <StatCard title="Expiring in 3 Days" value={stats.expiringSoon || 0} icon={Clock} color="bg-amber-500" />
+        <StatCard title="Deleted Key History" value={stats.deletedVpnKeys || 0} icon={Activity} color="bg-rose-500" />
+        <StatCard title="Monthly Revenue" value={`${(stats.monthlyRevenue || 0).toLocaleString()} MMK`} icon={DollarSign} color="bg-violet-600" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
