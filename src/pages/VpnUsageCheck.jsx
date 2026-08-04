@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Activity, CheckCircle2, Copy, Loader2, Shield, Wifi } from "lucide-react";
+import { Activity, Copy, Database, Loader2, Shield, Wifi } from "lucide-react";
 import { API_BASE_URL } from "../api-auth";
 
 const statusText = {
   ACTIVE: "Active",
-  EXPIRED: "Expired",
   DATA_LIMIT_REACHED: "Data Limit Full",
   DELETED: "Closed",
 };
@@ -94,9 +93,11 @@ export default function VpnUsageCheck() {
           <section className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-6 shadow-2xl">
             <div className="flex justify-between items-start gap-4">
               <div><p className="text-slate-400 text-sm">Package</p><h2 className="text-xl font-black">{result.productName}</h2></div>
-              <span className={`px-4 py-2 rounded-full text-xs font-black ${result.status === "ACTIVE" ? "bg-emerald-400/15 text-emerald-300" : "bg-rose-400/15 text-rose-300"}`}>
-                {statusText[result.status] || result.status}
-              </span>
+              {result.status !== "EXPIRED" && (
+                <span className={`px-4 py-2 rounded-full text-xs font-black ${result.status === "ACTIVE" ? "bg-emerald-400/15 text-emerald-300" : "bg-rose-400/15 text-rose-300"}`}>
+                  {statusText[result.status] || result.status}
+                </span>
+              )}
             </div>
 
             <div>
@@ -107,7 +108,7 @@ export default function VpnUsageCheck() {
 
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="bg-slate-900/70 rounded-2xl p-4"><Wifi className="text-cyan-300 mb-2" /><p className="text-slate-400">Used</p><b>{result.usageGB} GB</b></div>
-              <div className="bg-slate-900/70 rounded-2xl p-4"><CheckCircle2 className="text-emerald-300 mb-2" /><p className="text-slate-400">Expires</p><b>{result.expiresAt ? new Date(result.expiresAt).toLocaleDateString() : "No expiry"}</b></div>
+              <div className="bg-slate-900/70 rounded-2xl p-4"><Database className="text-emerald-300 mb-2" /><p className="text-slate-400">Data limit</p><b>{result.limitGB ? `${result.limitGB} GB` : "Unlimited"}</b></div>
             </div>
 
             {token && <button onClick={copyLink} className="w-full border border-white/15 rounded-2xl py-3 font-bold flex justify-center items-center gap-2"><Copy size={18} /> Copy safe usage link</button>}
