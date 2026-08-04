@@ -20,8 +20,12 @@ import VpnUsageChecker from "./pages/Users";
 import { useEffect, useState } from "react";
 import AdminLogin from "./components/AdminLogin";
 import DeletedVpnKeys from "./pages/DeletedVpnKeys";
+import VpnUsageCheck from "./pages/VpnUsageCheck";
 
 function App() {
+  if (window.location.pathname === "/vpn-check") {
+    return <VpnUsageCheck />;
+  }
   const isTelegramWebApp = Boolean(window.Telegram?.WebApp?.initData);
   const [authenticated, setAuthenticated] = useState(
     isTelegramWebApp || Boolean(sessionStorage.getItem("adminToken")),
