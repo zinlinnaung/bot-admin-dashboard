@@ -21,6 +21,7 @@ import { useEffect, useState } from "react";
 import AdminLogin from "./components/AdminLogin";
 import DeletedVpnKeys from "./pages/DeletedVpnKeys";
 import VpnUsageCheck from "./pages/VpnUsageCheck";
+import ProtoXOperations from "./pages/ProtoXOperations";
 
 function App() {
   if (window.location.pathname === "/vpn-check") {
@@ -53,6 +54,7 @@ function App() {
           <Route path="/products" element={<Products />} />
           <Route path="/transactions" element={<TransactionHistory />} />
           <Route path="/deleted-vpn-keys" element={<DeletedVpnKeys />} />
+          <Route path="/proto-x" element={<ProtoXOperations />} />
           <Route path="/subtitle-translator" element={<VpnUsageChecker />} />
           <Route path="/order" element={<GameOrders />} />
           <Route path="/deduct" element={<DeductBalance />} />

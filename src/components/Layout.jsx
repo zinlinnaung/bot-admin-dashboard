@@ -9,6 +9,7 @@ import {
   Package,
   Gamepad2, // Added a game icon just in case!
   ShieldOff,
+  Bot,
 } from "lucide-react";
 
 const SidebarItem = ({ to, icon: Icon, label, active }) => (
@@ -92,6 +93,12 @@ export default function Layout() {
             icon={ShieldOff}
             label="Deleted VPN Keys"
             active={location.pathname === "/deleted-vpn-keys"}
+          />
+          <SidebarItem
+            to="/proto-x"
+            icon={Bot}
+            label="Proto-X AI"
+            active={location.pathname === "/proto-x"}
           />
           <SidebarItem
             to="/subtitle-translator"
