@@ -14,6 +14,9 @@ import {
   X,
   Gift,
   Wifi,
+  Send,
+  RefreshCw,
+  ReceiptText,
 } from "lucide-react";
 
 export default function UsersDashboard() {
@@ -30,6 +33,8 @@ export default function UsersDashboard() {
   const [customerDetails, setCustomerDetails] = useState(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState("");
+  const [customerMessage, setCustomerMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   // Search and Pagination state
   const [searchTerm, setSearchTerm] = useState("");
@@ -104,6 +109,39 @@ export default function UsersDashboard() {
     setSelectedCustomer(null);
     setCustomerDetails(null);
     setDetailsError("");
+    setCustomerMessage("");
+  };
+
+  const sendCustomerMessage = async () => {
+    if (!customerMessage.trim() || !selectedCustomer) return;
+    setIsSending(true);
+    try {
+      await axios.post(
+        `${API_URL}/support/users/${selectedCustomer.id}/message`,
+        { message: customerMessage },
+      );
+      setCustomerMessage("");
+      alert("Customer ထံ message ပို့ပြီးပါပြီ။");
+    } catch (err) {
+      alert(err.response?.data?.message || "Message ပို့၍မရပါ။");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const sendRenewalMessage = async () => {
+    if (!selectedCustomer) return;
+    setIsSending(true);
+    try {
+      await axios.post(
+        `${API_URL}/support/users/${selectedCustomer.id}/renewal-message`,
+      );
+      alert("One-click renewal message ပို့ပြီးပါပြီ။");
+    } catch (err) {
+      alert(err.response?.data?.message || "Renewal message ပို့၍မရပါ။");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const formatDate = (value) =>
@@ -440,6 +478,46 @@ export default function UsersDashboard() {
                     </div>
                   </div>
 
+                  <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 text-xs font-black">
+                        {customerDetails.summary.customerType.replaceAll(
+                          "_",
+                          " → ",
+                        )}
+                      </span>
+                      <button
+                        onClick={sendRenewalMessage}
+                        disabled={isSending}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold disabled:opacity-50"
+                      >
+                        <RefreshCw size={16} /> Renewal ပို့မည်
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={customerMessage}
+                        onChange={(event) =>
+                          setCustomerMessage(event.target.value)
+                        }
+                        maxLength={3000}
+                        placeholder="Customer ထံပို့မည့် message…"
+                        className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-blue-400"
+                      />
+                      <button
+                        onClick={sendCustomerMessage}
+                        disabled={isSending || !customerMessage.trim()}
+                        className="px-4 rounded-xl bg-blue-600 text-white disabled:opacity-40"
+                      >
+                        {isSending ? (
+                          <Loader2 className="animate-spin" size={18} />
+                        ) : (
+                          <Send size={18} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
                   <div>
                     <h3 className="font-black text-slate-900 flex items-center gap-2 mb-3">
                       <Package size={20} className="text-blue-600" />{" "}
@@ -504,6 +582,33 @@ export default function UsersDashboard() {
                                   <span className="text-slate-600">
                                     Expire: {formatDate(purchase.expiresAt)}
                                   </span>
+                                  {purchase.liveUsage?.available && (
+                                    <div className="sm:col-span-3 mt-2">
+                                      <div className="flex justify-between text-slate-600 mb-1.5">
+                                        <span>
+                                          Usage: {purchase.liveUsage.usageGB} GB
+                                          / {purchase.liveUsage.limitGB || "∞"}{" "}
+                                          GB
+                                        </span>
+                                        <span>
+                                          {purchase.liveUsage.usagePercent ??
+                                            "—"}
+                                          % ·{" "}
+                                          {purchase.liveUsage.daysRemaining ??
+                                            "—"}{" "}
+                                          days left
+                                        </span>
+                                      </div>
+                                      <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                                        <div
+                                          className={`h-full rounded-full ${purchase.liveUsage.usagePercent >= 80 ? "bg-rose-500" : "bg-blue-500"}`}
+                                          style={{
+                                            width: `${purchase.liveUsage.usagePercent || 0}%`,
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
                                   {purchase.deletion && (
                                     <span className="sm:col-span-3 text-rose-600 font-semibold">
                                       Ended: {purchase.deletion.reason} ·{" "}
@@ -536,6 +641,45 @@ export default function UsersDashboard() {
                         နောက်ဆုံး records 100 ခုအထိ ပြထားပါသည်။
                       </p>
                     )}
+                  </div>
+
+                  <div>
+                    <h3 className="font-black text-slate-900 flex items-center gap-2 mb-3">
+                      <ReceiptText size={20} className="text-emerald-600" />{" "}
+                      Wallet & Transaction History
+                    </h3>
+                    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                      {customerDetails.finance.transactions.length ? (
+                        customerDetails.finance.transactions.map((item) => (
+                          <div
+                            key={item.id}
+                            className="px-4 py-3 border-b last:border-0 border-slate-100 flex justify-between gap-3 text-sm"
+                          >
+                            <div>
+                              <p className="font-bold text-slate-800">
+                                {item.type}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {item.description || "—"} ·{" "}
+                                {formatDate(item.createdAt)}
+                              </p>
+                            </div>
+                            <span
+                              className={`font-black ${item.type === "DEPOSIT" || item.type === "REFUND" ? "text-emerald-600" : "text-rose-600"}`}
+                            >
+                              {item.type === "DEPOSIT" || item.type === "REFUND"
+                                ? "+"
+                                : "−"}
+                              {item.amount.toLocaleString()} MMK
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="py-10 text-center text-slate-400">
+                          Transaction မရှိသေးပါ။
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </>
               ) : null}

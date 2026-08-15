@@ -11,6 +11,8 @@ import {
   ShieldOff,
   Bot,
   ChartNoAxesCombined,
+  Activity,
+  ReceiptText,
 } from "lucide-react";
 
 const SidebarItem = ({ to, icon: Icon, label, active }) => (
@@ -44,7 +46,7 @@ export default function Layout() {
             ADMIN HUB
           </h1>
         </div>
-        <nav className="flex-1 mt-4">
+        <nav className="flex-1 mt-4 overflow-y-auto">
           <SidebarItem
             to="/"
             icon={LayoutDashboard}
@@ -108,6 +110,18 @@ export default function Layout() {
             active={location.pathname === "/proto-x"}
           />
           <SidebarItem
+            to="/operations"
+            icon={Activity}
+            label="Operations Status"
+            active={location.pathname === "/operations"}
+          />
+          <SidebarItem
+            to="/financial-reconciliation"
+            icon={ReceiptText}
+            label="Financial Audit"
+            active={location.pathname === "/financial-reconciliation"}
+          />
+          <SidebarItem
             to="/subtitle-translator"
             icon={Gamepad2}
             label="Subtitle Translator"
@@ -140,7 +154,10 @@ export default function Layout() {
         </nav>
 
         <div className="p-6 border-t border-gray-800">
-          <button onClick={logout} className="flex items-center gap-3 text-gray-500 hover:text-red-400 transition w-full">
+          <button
+            onClick={logout}
+            className="flex items-center gap-3 text-gray-500 hover:text-red-400 transition w-full"
+          >
             <LogOut size={20} /> <span>Logout</span>
           </button>
         </div>

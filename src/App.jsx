@@ -23,6 +23,8 @@ import DeletedVpnKeys from "./pages/DeletedVpnKeys";
 import VpnUsageCheck from "./pages/VpnUsageCheck";
 import ProtoXOperations from "./pages/ProtoXOperations";
 import BusinessAnalytics from "./pages/BusinessAnalytics";
+import OperationsStatus from "./pages/OperationsStatus";
+import FinancialReconciliation from "./pages/FinancialReconciliation";
 
 function App() {
   if (window.location.pathname === "/vpn-check") {
@@ -57,6 +59,11 @@ function App() {
           <Route path="/deleted-vpn-keys" element={<DeletedVpnKeys />} />
           <Route path="/proto-x" element={<ProtoXOperations />} />
           <Route path="/business-analytics" element={<BusinessAnalytics />} />
+          <Route path="/operations" element={<OperationsStatus />} />
+          <Route
+            path="/financial-reconciliation"
+            element={<FinancialReconciliation />}
+          />
           <Route path="/subtitle-translator" element={<VpnUsageChecker />} />
           <Route path="/order" element={<GameOrders />} />
           <Route path="/deduct" element={<DeductBalance />} />
