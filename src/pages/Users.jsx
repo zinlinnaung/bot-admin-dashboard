@@ -9,6 +9,11 @@ import {
   Wallet,
   Calendar,
   XCircle,
+  Package,
+  Eye,
+  X,
+  Gift,
+  Wifi,
 } from "lucide-react";
 
 export default function UsersDashboard() {
@@ -21,6 +26,10 @@ export default function UsersDashboard() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerDetails, setCustomerDetails] = useState(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState("");
 
   // Search and Pagination state
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,6 +82,52 @@ export default function UsersDashboard() {
     if (newPage >= 1 && newPage <= meta.lastPage) {
       setCurrentPage(newPage);
     }
+  };
+
+  const openCustomer = async (user) => {
+    setSelectedCustomer(user);
+    setCustomerDetails(null);
+    setDetailsError("");
+    setIsLoadingDetails(true);
+    try {
+      const response = await axios.get(`${API_URL}/users/${user.id}/purchases`);
+      setCustomerDetails(response.data);
+    } catch (err) {
+      console.error("Fetch customer purchases error:", err);
+      setDetailsError("Customer ဝယ်ယူမှုမှတ်တမ်းကို ရယူ၍မရပါ။");
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
+  const closeCustomer = () => {
+    setSelectedCustomer(null);
+    setCustomerDetails(null);
+    setDetailsError("");
+  };
+
+  const formatDate = (value) =>
+    value
+      ? new Date(value).toLocaleString("en-GB", {
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—";
+
+  const purchaseLabel = (purchase) => {
+    if (purchase.product?.isFreeTrial || purchase.amount === 0) return "Trial";
+    return purchase.product?.category || "Product";
+  };
+
+  const vpnState = (purchase) => {
+    if (purchase.vpnKeyDeletedAt || purchase.deletion) return "Deleted/Ended";
+    if (purchase.expiresAt && new Date(purchase.expiresAt) < new Date())
+      return "Expired";
+    if (purchase.product?.category === "VPN") return "Active";
+    return null;
   };
 
   return (
@@ -143,12 +198,15 @@ export default function UsersDashboard() {
                   <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Joined Date
                   </th>
+                  <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">
+                    Purchases
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {isLoading ? (
                   <tr>
-                    <td colSpan="4" className="py-32 text-center">
+                    <td colSpan="5" className="py-32 text-center">
                       <Loader2
                         className="animate-spin mx-auto text-blue-500 mb-4"
                         size={40}
@@ -162,7 +220,8 @@ export default function UsersDashboard() {
                   users.map((user) => (
                     <tr
                       key={user.id}
-                      className="hover:bg-slate-50/80 transition-colors group"
+                      onClick={() => openCustomer(user)}
+                      className="hover:bg-blue-50/60 transition-colors group cursor-pointer"
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
@@ -210,11 +269,22 @@ export default function UsersDashboard() {
                           )}
                         </div>
                       </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openCustomer(user);
+                          }}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 text-blue-700 text-sm font-bold hover:bg-blue-600 hover:text-white transition-colors"
+                        >
+                          <Eye size={16} /> View
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="py-32 text-center">
+                    <td colSpan="5" className="py-32 text-center">
                       <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Users size={32} />
                       </div>
@@ -295,6 +365,184 @@ export default function UsersDashboard() {
           )}
         </div>
       </div>
+
+      {selectedCustomer && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex justify-end"
+          onClick={closeCustomer}
+        >
+          <section
+            className="w-full max-w-3xl h-full bg-slate-50 shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-200 px-6 py-5 flex items-start justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-blue-600">
+                  Customer details
+                </p>
+                <h2 className="text-2xl font-black text-slate-900 mt-1">
+                  {selectedCustomer.firstName || "Unknown User"}
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  @{selectedCustomer.username || "No username"} ·{" "}
+                  {selectedCustomer.telegramId}
+                </p>
+              </div>
+              <button
+                onClick={closeCustomer}
+                className="p-2 rounded-xl text-slate-500 hover:bg-slate-100"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {isLoadingDetails ? (
+                <div className="py-28 text-center text-slate-500">
+                  <Loader2
+                    className="animate-spin mx-auto mb-3 text-blue-600"
+                    size={36}
+                  />
+                  Customer history ရယူနေပါသည်…
+                </div>
+              ) : detailsError ? (
+                <div className="p-4 rounded-2xl bg-rose-50 text-rose-700 font-semibold">
+                  {detailsError}
+                </div>
+              ) : customerDetails ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="bg-white border border-slate-100 rounded-2xl p-4">
+                      <p className="text-xs font-bold text-slate-400 uppercase">
+                        Purchases
+                      </p>
+                      <p className="text-2xl font-black mt-1">
+                        {customerDetails.summary.totalPurchases}
+                      </p>
+                    </div>
+                    <div className="bg-white border border-slate-100 rounded-2xl p-4">
+                      <p className="text-xs font-bold text-slate-400 uppercase">
+                        Total spent
+                      </p>
+                      <p className="text-2xl font-black mt-1">
+                        {customerDetails.summary.totalSpent.toLocaleString()}{" "}
+                        <span className="text-xs">MMK</span>
+                      </p>
+                    </div>
+                    <div className="bg-white border border-slate-100 rounded-2xl p-4 col-span-2 md:col-span-1">
+                      <p className="text-xs font-bold text-slate-400 uppercase">
+                        Balance
+                      </p>
+                      <p className="text-2xl font-black mt-1">
+                        {Number(customerDetails.user.balance).toLocaleString()}{" "}
+                        <span className="text-xs">MMK</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-black text-slate-900 flex items-center gap-2 mb-3">
+                      <Package size={20} className="text-blue-600" />{" "}
+                      ဝယ်ယူ/အသုံးပြုထားသော Product များ
+                    </h3>
+                    {customerDetails.purchases.length ? (
+                      <div className="space-y-3">
+                        {customerDetails.purchases.map((purchase) => {
+                          const state = vpnState(purchase);
+                          return (
+                            <article
+                              key={purchase.id}
+                              className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm"
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                <div className="flex gap-3">
+                                  <div
+                                    className={`w-11 h-11 rounded-xl flex items-center justify-center ${purchase.product?.isFreeTrial || purchase.amount === 0 ? "bg-violet-50 text-violet-600" : "bg-blue-50 text-blue-600"}`}
+                                  >
+                                    {purchase.product?.isFreeTrial ||
+                                    purchase.amount === 0 ? (
+                                      <Gift size={21} />
+                                    ) : (
+                                      <Package size={21} />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="font-black text-slate-900">
+                                      {purchase.product?.name ||
+                                        "Deleted product"}
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                      #{purchase.id} · {purchaseLabel(purchase)}{" "}
+                                      · {formatDate(purchase.createdAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="sm:text-right">
+                                  <p className="font-black text-slate-900">
+                                    {purchase.amount.toLocaleString()} MMK
+                                  </p>
+                                  <span
+                                    className={`inline-block mt-1 px-2.5 py-1 rounded-full text-xs font-bold ${purchase.status === "COMPLETED" ? "bg-emerald-50 text-emerald-700" : purchase.status === "REJECTED" ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"}`}
+                                  >
+                                    {purchase.status}
+                                  </span>
+                                </div>
+                              </div>
+                              {(purchase.product?.category === "VPN" ||
+                                purchase.expiresAt) && (
+                                <div className="mt-4 pt-3 border-t border-slate-100 grid sm:grid-cols-3 gap-2 text-xs">
+                                  <span className="flex items-center gap-1.5 text-slate-600">
+                                    <Wifi size={14} /> {state}
+                                  </span>
+                                  <span className="text-slate-600">
+                                    Limit:{" "}
+                                    {purchase.vpnUsageLimitGB ||
+                                      purchase.product?.usageLimitGB ||
+                                      "—"}{" "}
+                                    GB
+                                  </span>
+                                  <span className="text-slate-600">
+                                    Expire: {formatDate(purchase.expiresAt)}
+                                  </span>
+                                  {purchase.deletion && (
+                                    <span className="sm:col-span-3 text-rose-600 font-semibold">
+                                      Ended: {purchase.deletion.reason} ·{" "}
+                                      {formatDate(purchase.deletion.deletedAt)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {(purchase.playerId || purchase.nickname) && (
+                                <p className="mt-3 text-xs text-slate-600">
+                                  Game account: {purchase.nickname || "—"} ·{" "}
+                                  {purchase.playerId || "—"}
+                                  {purchase.serverId
+                                    ? ` (${purchase.serverId})`
+                                    : ""}
+                                </p>
+                              )}
+                            </article>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-2xl border border-slate-100 py-16 text-center text-slate-400">
+                        ဒီ customer မှာ ဝယ်ယူမှုမှတ်တမ်းမရှိသေးပါ။
+                      </div>
+                    )}
+                    {customerDetails.summary.totalPurchases >
+                      customerDetails.purchases.length && (
+                      <p className="text-xs text-slate-400 text-center mt-3">
+                        နောက်ဆုံး records 100 ခုအထိ ပြထားပါသည်။
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
