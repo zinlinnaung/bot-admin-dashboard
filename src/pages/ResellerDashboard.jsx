@@ -13,7 +13,6 @@ export default function ResellerDashboard() {
   const [busy, setBusy] = useState(false);
   const [label, setLabel] = useState("");
   const [retailPrice, setRetailPrice] = useState(4000);
-  const [topup, setTopup] = useState(10000);
   const [newKey, setNewKey] = useState("");
 
   const headers = { "X-Telegram-Init-Data": tg?.initData || "" };
@@ -56,6 +55,29 @@ export default function ResellerDashboard() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const openResellerTopup = () => {
+    const openBot = () => {
+      const link = "https://t.me/trustvpn_digital_bot?start=reseller_topup";
+      if (tg?.openTelegramLink) tg.openTelegramLink(link);
+      else window.location.href = link;
+    };
+    const message =
+      "Payment process ကို Telegram bot မှ ဆက်လုပ်ပါမည်။ Bot က top-up ပမာဏမေးပြီး payment account ပြပါမည်။ ငွေလွှဲ screenshot တင်ပြီး Admin approve လုပ်မှ reseller wallet ထဲ ဝင်ပါမည်။";
+    if (tg?.showPopup) {
+      tg.showPopup(
+        {
+          title: "Reseller Wallet Top-up",
+          message,
+          buttons: [
+            { id: "continue", type: "default", text: "Bot မှ ဆက်လုပ်မည်" },
+            { type: "cancel", text: "မလုပ်တော့ပါ" },
+          ],
+        },
+        (buttonId) => buttonId === "continue" && openBot(),
+      );
+    } else if (window.confirm(message)) openBot();
   };
 
   if (!data && !error)
@@ -201,27 +223,12 @@ export default function ResellerDashboard() {
               )}
             </Card>
             <Card title="Reseller wallet ဖြည့်မည်">
-              <p className="text-sm">
-                Main wallet: {money(data.user.mainBalance)}
+              <p className="text-sm text-slate-600">
+                Payment process ကို Telegram bot မှ ပြုလုပ်ပါမည်။ ပမာဏရွေး၊
+                ငွေလွှဲပြေစာတင်ပြီး Admin approve လုပ်မှ wallet ထဲဝင်ပါမည်။
               </p>
-              <input
-                className="mt-3 w-full rounded-xl border border-slate-300 p-3"
-                type="number"
-                min="2500"
-                step="500"
-                value={topup}
-                onChange={(e) => setTopup(e.target.value)}
-              />
-              <Button
-                disabled={busy}
-                onClick={() =>
-                  action("/reseller/topup", {
-                    amount: Number(topup),
-                    requestKey: idempotencyKey("topup"),
-                  })
-                }
-              >
-                Wallet ဖြည့်မည်
+              <Button disabled={busy} onClick={openResellerTopup}>
+                Bot မှ Wallet ဖြည့်မည်
               </Button>
             </Card>
             <Card title="Key ထုတ်ထားမှုမှတ်တမ်း">
