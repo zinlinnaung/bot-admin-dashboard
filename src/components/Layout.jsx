@@ -13,6 +13,7 @@ import {
   ChartNoAxesCombined,
   Activity,
   ReceiptText,
+  Handshake,
 } from "lucide-react";
 
 const SidebarItem = ({ to, icon: Icon, label, active }) => (
@@ -102,6 +103,12 @@ export default function Layout() {
             icon={ChartNoAxesCombined}
             label="Business Analytics"
             active={location.pathname === "/business-analytics"}
+          />
+          <SidebarItem
+            to="/vpn-resellers"
+            icon={Handshake}
+            label="VPN Resellers"
+            active={location.pathname === "/vpn-resellers"}
           />
           <SidebarItem
             to="/proto-x"

@@ -25,10 +25,15 @@ import ProtoXOperations from "./pages/ProtoXOperations";
 import BusinessAnalytics from "./pages/BusinessAnalytics";
 import OperationsStatus from "./pages/OperationsStatus";
 import FinancialReconciliation from "./pages/FinancialReconciliation";
+import ResellerDashboard from "./pages/ResellerDashboard";
+import VpnResellers from "./pages/VpnResellers";
 
 function App() {
   if (window.location.pathname === "/vpn-check") {
     return <VpnUsageCheck />;
+  }
+  if (window.location.pathname === "/reseller") {
+    return <ResellerDashboard />;
   }
   const isTelegramWebApp = Boolean(window.Telegram?.WebApp?.initData);
   const [authenticated, setAuthenticated] = useState(
@@ -59,6 +64,7 @@ function App() {
           <Route path="/deleted-vpn-keys" element={<DeletedVpnKeys />} />
           <Route path="/proto-x" element={<ProtoXOperations />} />
           <Route path="/business-analytics" element={<BusinessAnalytics />} />
+          <Route path="/vpn-resellers" element={<VpnResellers />} />
           <Route path="/operations" element={<OperationsStatus />} />
           <Route
             path="/financial-reconciliation"
