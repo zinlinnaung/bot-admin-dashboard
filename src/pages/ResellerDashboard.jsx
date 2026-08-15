@@ -25,9 +25,12 @@ export default function ResellerDashboard() {
       });
       setData(response.data);
     } catch (e) {
+      const message = e.response?.data?.message;
       setError(
-        e.response?.data?.message ||
-          "Reseller အချက်အလက် မရယူနိုင်ပါ။ Telegram bot မှ ဖွင့်ပေးပါ။",
+        message === "Authentication required"
+          ? "Telegram authentication သက်တမ်းကုန်နေပါသည်။ ဒီစာမျက်နှာကိုပိတ်ပြီး bot ရှိ 🤝 VPN Reseller Program မှ ပြန်ဖွင့်ပါ။"
+          : message ||
+              "Reseller အချက်အလက် မရယူနိုင်ပါ။ ခဏစောင့်ပြီး ပြန်စမ်းပါ။",
       );
     }
   }, [tg?.initData]);
