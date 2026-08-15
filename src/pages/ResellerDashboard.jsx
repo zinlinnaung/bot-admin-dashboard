@@ -254,6 +254,51 @@ export default function ResellerDashboard() {
                         {new Date(order.expiresAt).toLocaleDateString("my-MM")}
                       </p>
                     )}
+                    {order.status === "COMPLETED" && order.usage && (
+                      <div className="mt-3 rounded-xl bg-slate-50 p-3">
+                        {order.usage.available ? (
+                          <>
+                            <div className="flex items-center justify-between gap-3 text-xs">
+                              <span className="font-bold text-slate-700">
+                                Data အသုံးပြုမှု
+                              </span>
+                              <span className="font-black text-slate-900">
+                                {order.usage.usageGB} GB / {order.usage.limitGB} GB
+                              </span>
+                            </div>
+                            <div
+                              className="mt-2 h-3 overflow-hidden rounded-full bg-slate-200"
+                              role="progressbar"
+                              aria-label={`${order.customerLabel || "Customer"} data usage`}
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                              aria-valuenow={order.usage.usagePercent || 0}
+                            >
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  order.usage.usagePercent >= 90
+                                    ? "bg-red-500"
+                                    : order.usage.usagePercent >= 80
+                                      ? "bg-amber-500"
+                                      : "bg-emerald-500"
+                                }`}
+                                style={{
+                                  width: `${Math.min(100, order.usage.usagePercent || 0)}%`,
+                                }}
+                              />
+                            </div>
+                            <div className="mt-2 flex justify-between text-xs text-slate-600">
+                              <span>{order.usage.usagePercent || 0}% သုံးပြီး</span>
+                              <span>{order.usage.remainingGB} GB ကျန်</span>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-xs text-slate-500">
+                            Usage အချက်အလက်ကို ယာယီမရနိုင်သေးပါ။
+                          </p>
+                        )}
+                      </div>
+                    )}
                     {order.accessKey && (
                       <button
                         className="mt-2 font-bold text-blue-700"
