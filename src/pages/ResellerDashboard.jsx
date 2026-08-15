@@ -116,11 +116,13 @@ export default function ResellerDashboard() {
               Reseller wallet စဖွင့်ရန်:{" "}
               <b>{money(account.openingBalanceRequired)}</b>
             </p>
-            <Button
-              disabled={busy}
-              onClick={() => action("/reseller/activate")}
-            >
-              30,000 MMK ဖြင့် စတင်မည်
+            <p className="mt-2 text-sm text-slate-600">
+              Telegram bot menu ရှိ 🤝 VPN Reseller Program ကိုနှိပ်ပြီး 30,000
+              MMK ငွေလွှဲကာ ပြေစာ screenshot တင်ပါ။ Admin approve ပြီးလျှင်
+              အလိုအလျောက် activate ဖြစ်ပါမည်။
+            </p>
+            <Button disabled={busy} onClick={() => tg?.close()}>
+              Telegram Bot သို့ ပြန်မည်
             </Button>
           </Card>
         )}
