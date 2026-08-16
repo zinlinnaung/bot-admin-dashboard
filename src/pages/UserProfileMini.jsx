@@ -40,7 +40,21 @@ export default function UserProfileMini() {
     await navigator.clipboard.writeText(value);
     tg?.showAlert(message);
   };
-  const openBot = (start = "") => tg?.openTelegramLink(`https://t.me/trustvpn_digital_bot${start ? `?start=${start}` : ""}`);
+  const continuePurchaseInBot = () => {
+    const message = "Payment process ကို Telegram Bot မှ ဆက်လက်ဆောင်ရွက်ပါမည်။ Mini App ကိုပိတ်ပြီး VPN package ရွေးချယ်ရန် Bot သို့ပြန်သွားမည်။";
+    const proceed = (confirmed) => {
+      if (!confirmed) return;
+      const link = "https://t.me/trustvpn_digital_bot?start=buy_vpn";
+      if (tg) {
+        tg.openTelegramLink(link);
+        window.setTimeout(() => tg.close(), 350);
+      } else {
+        window.location.href = link;
+      }
+    };
+    if (tg?.showConfirm) tg.showConfirm(message, proceed);
+    else proceed(window.confirm(message));
+  };
 
   if (loading) return <div className="min-h-screen grid place-items-center bg-slate-950 text-cyan-300"><RefreshCw className="animate-spin" /></div>;
   if (error) return <div className="min-h-screen bg-slate-950 p-6 text-white"><div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5">{error}</div></div>;
@@ -90,7 +104,7 @@ export default function UserProfileMini() {
           </div>
         </section>
 
-        <button onClick={() => openBot()} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-400 p-4 font-black text-slate-950"><Gift size={19} /> VPN Package ဝယ်မည် <ExternalLink size={17} /></button>
+        <button onClick={continuePurchaseInBot} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-400 p-4 font-black text-slate-950"><Gift size={19} /> VPN Package ဝယ်မည် <ExternalLink size={17} /></button>
         <p className="text-center text-xs text-slate-500">Payment process ကို Telegram Bot မှ လုံခြုံစွာဆောင်ရွက်ပါသည်။</p>
       </div>
     </main>
