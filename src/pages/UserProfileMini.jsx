@@ -76,11 +76,11 @@ export default function UserProfileMini() {
       <div className="space-y-5 p-5">
         <section>
           <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">လက်ရှိ VPN Keys</h2><button onClick={load} className="text-cyan-300"><RefreshCw size={18} /></button></div>
-          <div className="space-y-3">
+          <div className="profile-scrollbar max-h-[360px] space-y-3 overflow-y-auto overscroll-contain pr-2">
             {active.map((item) => (
               <div key={item.id} className="rounded-2xl border border-cyan-400/20 bg-slate-900 p-4">
                 <div className="flex items-start justify-between"><div><p className="font-bold">{item.product.name}</p><p className="mt-1 text-xs text-slate-400">ကုန်ဆုံးရက်: {fmtDate(item.expiresAt)} • {item.vpnUsageLimitGB || item.product.usageLimitGB || "Unlimited"} GB</p></div><KeyRound className="text-cyan-300" /></div>
-                {item.productKey?.key && <button onClick={() => copy(item.productKey.key, "VPN Key Copy ကူးပြီးပါပြီ။")} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 font-bold text-slate-950"><Copy size={17} /> VPN Key Copy</button>}
+                {item.productKey?.key ? <button onClick={() => copy(item.productKey.key, "VPN Key Copy ကူးပြီးပါပြီ။")} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 font-bold text-slate-950 shadow-lg shadow-cyan-500/10 active:scale-[.98]"><Copy size={17} /> VPN Key Copy</button> : <div className="mt-4 rounded-xl bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-300">Key ကို server မှ ရယူနေပါသည်။ Refresh နှိပ်ပေးပါ။</div>}
               </div>
             ))}
             {!active.length && <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 text-sm text-slate-400">လက်ရှိအသုံးပြုနိုင်သော VPN key မရှိသေးပါ။</div>}
@@ -99,8 +99,9 @@ export default function UserProfileMini() {
 
         <section>
           <h2 className="mb-3 font-bold">VPN Order History</h2>
-          <div className="space-y-2">
-            {vpnPurchases.slice(0, 10).map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl bg-slate-900 p-4"><div><p className="text-sm font-semibold">{item.product.name}</p><p className="text-xs text-slate-500">{fmtDate(item.createdAt)}</p></div><span className={`rounded-full px-3 py-1 text-xs ${item.status === "COMPLETED" ? "bg-emerald-500/15 text-emerald-300" : item.status === "REJECTED" ? "bg-red-500/15 text-red-300" : "bg-amber-500/15 text-amber-300"}`}>{item.status}</span></div>)}
+          <div className="profile-scrollbar max-h-[320px] space-y-2 overflow-y-auto overscroll-contain pr-2">
+            {vpnPurchases.map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl bg-slate-900 p-4"><div><p className="text-sm font-semibold">{item.product.name}</p><p className="text-xs text-slate-500">{fmtDate(item.createdAt)}</p></div><span className={`rounded-full px-3 py-1 text-xs ${item.status === "COMPLETED" ? "bg-emerald-500/15 text-emerald-300" : item.status === "REJECTED" ? "bg-red-500/15 text-red-300" : "bg-amber-500/15 text-amber-300"}`}>{item.status}</span></div>)}
+            {!vpnPurchases.length && <div className="rounded-xl bg-slate-900 p-4 text-sm text-slate-400">VPN order history မရှိသေးပါ။</div>}
           </div>
         </section>
 
