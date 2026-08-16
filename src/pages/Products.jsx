@@ -20,6 +20,8 @@ import {
   AlertCircle,
   TrendingUp,
   LayoutGrid,
+  RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
 
 const API_URL = "https://api.prototypeconnect.xyz/admin";
@@ -47,6 +49,10 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [fetchingKeys, setFetchingKeys] = useState(false);
+  const [escanorStatus, setEscanorStatus] = useState(null);
+  const [smileCoinRate, setSmileCoinRate] = useState("150");
+  const [profitPercent, setProfitPercent] = useState("15");
+  const [syncingEscanor, setSyncingEscanor] = useState(false);
 
   // UX States
   const [searchTerm, setSearchTerm] = useState("");
@@ -120,8 +126,39 @@ export default function Products() {
     }
   };
 
+  const fetchEscanorStatus = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/escanor/status`);
+      setEscanorStatus(res.data);
+    } catch (error) {
+      setEscanorStatus({ configured: false, error: error.response?.data?.message || "API status စစ်၍မရပါ" });
+    }
+  };
+
+  const syncEscanorProducts = async () => {
+    const mmkPerSmileCoin = Number(smileCoinRate);
+    const markupPercent = Number(profitPercent);
+    if (!Number.isFinite(mmkPerSmileCoin) || mmkPerSmileCoin <= 0 || !Number.isFinite(markupPercent) || markupPercent < 0) {
+      alert("Smile Coin ဈေးနှင့် အမြတ်ရာခိုင်နှုန်းကို မှန်ကန်စွာဖြည့်ပါ။");
+      return;
+    }
+    if (!window.confirm(`MLBB package အားလုံးကို Smile Coin ${mmkPerSmileCoin.toLocaleString()} MMK နှင့် အမြတ် ${markupPercent}% ဖြင့်တွက်ပြီး Bot မှာ Activate လုပ်မည်။ အတည်ပြုပါသလား?`)) return;
+    setSyncingEscanor(true);
+    try {
+      const res = await axios.post(`${API_URL}/escanor/sync-products`, { mmkPerSmileCoin, markupPercent, activate: true });
+      alert(`အောင်မြင်ပါသည်။ MLBB package ${res.data.count} မျိုး Sync & Activate လုပ်ပြီးပါပြီ။`);
+      await Promise.all([fetchProducts(), fetchEscanorStatus()]);
+      setActiveTab("MLBB");
+    } catch (error) {
+      alert(error.response?.data?.message || "EscanorX product sync မအောင်မြင်ပါ။");
+    } finally {
+      setSyncingEscanor(false);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchEscanorStatus();
   }, []);
 
   // --- Filter Logic ---
@@ -294,6 +331,28 @@ export default function Products() {
           </div>
         </div>
 
+        <section className="rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 p-6 text-white shadow-xl">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-cyan-300"><ShieldCheck size={20} /><span className="text-xs font-black uppercase tracking-[0.18em]">EscanorX Auto Top-up</span></div>
+              <h2 className="text-2xl font-black">MLBB Pricing & Activation</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Smile Coin ဝယ်ဈေးနှင့် အမြတ်ရာခိုင်နှုန်းအပေါ်မူတည်ပြီး MLBB package ရောင်းဈေးများကို အလိုအလျောက်တွက်ပေးပါမည်။ Approve မနှိပ်မချင်း Bot မှာ မပြောင်းပါ။</p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+                <span className={`rounded-full px-3 py-1.5 ${escanorStatus?.configured ? "bg-emerald-400/15 text-emerald-300" : "bg-rose-400/15 text-rose-300"}`}>{escanorStatus?.configured ? "● API Connected" : "● API Not Connected"}</span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5 text-slate-200">API Packages: {escanorStatus?.mlbbProductCount ?? "—"}</span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5 text-slate-200">BR Balance: {escanorStatus?.balance?.br ?? "—"}</span>
+              </div>
+            </div>
+            <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-2xl xl:grid-cols-[1fr_1fr_auto]">
+              <label className="text-xs font-bold text-slate-300">Smile Coin တစ်ခု၏ဈေး (MMK)<input type="number" min="1" value={smileCoinRate} onChange={(e) => setSmileCoinRate(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-base font-black text-white outline-none focus:border-cyan-400" /></label>
+              <label className="text-xs font-bold text-slate-300">အမြတ်ရာခိုင်နှုန်း (%)<input type="number" min="0" value={profitPercent} onChange={(e) => setProfitPercent(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-base font-black text-white outline-none focus:border-cyan-400" /></label>
+              <button disabled={syncingEscanor || !escanorStatus?.configured} onClick={syncEscanorProducts} className="flex min-h-12 items-center justify-center gap-2 self-end rounded-xl bg-cyan-400 px-5 py-3 font-black text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50">
+                {syncingEscanor ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />} Sync & Approve
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* --- Quick Stats --- */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
@@ -339,7 +398,7 @@ export default function Products() {
         <div className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm">
             <div className="flex flex-wrap gap-1 p-1">
-              {["All", ...Object.keys(CATEGORY_MAP)].map((tab) => (
+              {["All", "MLBB", ...Object.keys(CATEGORY_MAP)].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
