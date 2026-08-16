@@ -36,6 +36,9 @@ function App() {
   if (window.location.pathname === "/reseller") {
     return <ResellerDashboard />;
   }
+  if (window.location.pathname === "/landing") {
+    return <DigitalStoreApp />;
+  }
   const isTelegramWebApp = Boolean(window.Telegram?.WebApp?.initData);
   const [authenticated, setAuthenticated] = useState(
     isTelegramWebApp || Boolean(sessionStorage.getItem("adminToken")),
@@ -86,7 +89,6 @@ function App() {
         {/* This route is outside, so it will be a clean, blank page */}
         <Route path="/game" element={<HighLowGame />} />
         <Route path="/profile" element={<UserProfileMini />} />
-        <Route path="/landing" element={<DigitalStoreApp />} />
       </Routes>
     </Router>
   );
