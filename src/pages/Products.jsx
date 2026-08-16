@@ -50,12 +50,15 @@ export default function Products() {
   const [submitting, setSubmitting] = useState(false);
   const [fetchingKeys, setFetchingKeys] = useState(false);
   const [escanorStatus, setEscanorStatus] = useState(null);
-  const [smileCoinRate, setSmileCoinRate] = useState("150");
-  const [profitPercent, setProfitPercent] = useState("15");
+  const [smileCoinRate, setSmileCoinRate] = useState("83.35");
+  const [profitPercent, setProfitPercent] = useState("7.35");
+  const [safetyReserve, setSafetyReserve] = useState("50");
+  const [overwritePrices, setOverwritePrices] = useState(false);
   const [syncingEscanor, setSyncingEscanor] = useState(false);
   const [redeemCodes, setRedeemCodes] = useState("");
   const [redeemingCodes, setRedeemingCodes] = useState(false);
   const [redeemResponse, setRedeemResponse] = useState(null);
+  const [escanorOrders, setEscanorOrders] = useState({ supplierOrders: [], localOrders: [] });
 
   // UX States
   const [searchTerm, setSearchTerm] = useState("");
@@ -133,22 +136,36 @@ export default function Products() {
     try {
       const res = await axios.get(`${API_URL}/escanor/status`);
       setEscanorStatus(res.data);
+      if (res.data?.pricing) {
+        setSmileCoinRate(String(res.data.pricing.mmkPerSmileCoin));
+        setProfitPercent(String(res.data.pricing.markupPercent));
+        setSafetyReserve(String(res.data.pricing.safetyReserve));
+      }
     } catch (error) {
       setEscanorStatus({ configured: false, error: error.response?.data?.message || "API status စစ်၍မရပါ" });
+    }
+  };
+
+  const fetchEscanorOrders = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/escanor/orders`);
+      setEscanorOrders(res.data);
+    } catch (error) {
+      console.error("Supplier orders စစ်၍မရပါ", error);
     }
   };
 
   const syncEscanorProducts = async () => {
     const mmkPerSmileCoin = Number(smileCoinRate);
     const markupPercent = Number(profitPercent);
-    if (!Number.isFinite(mmkPerSmileCoin) || mmkPerSmileCoin <= 0 || !Number.isFinite(markupPercent) || markupPercent < 0) {
+    if (!Number.isFinite(mmkPerSmileCoin) || mmkPerSmileCoin <= 0 || !Number.isFinite(markupPercent) || markupPercent < 0 || !Number.isFinite(Number(safetyReserve)) || Number(safetyReserve) < 0) {
       alert("Smile Coin ဈေးနှင့် အမြတ်ရာခိုင်နှုန်းကို မှန်ကန်စွာဖြည့်ပါ။");
       return;
     }
     if (!window.confirm(`MLBB package အားလုံးကို Smile Coin ${mmkPerSmileCoin.toLocaleString()} MMK နှင့် အမြတ် ${markupPercent}% ဖြင့်တွက်ပြီး Bot မှာ Activate လုပ်မည်။ အတည်ပြုပါသလား?`)) return;
     setSyncingEscanor(true);
     try {
-      const res = await axios.post(`${API_URL}/escanor/sync-products`, { mmkPerSmileCoin, markupPercent, activate: true });
+      const res = await axios.post(`${API_URL}/escanor/sync-products`, { mmkPerSmileCoin, markupPercent, safetyReserve: Number(safetyReserve), activate: true, overwritePrices });
       alert(`အောင်မြင်ပါသည်။ MLBB package ${res.data.count} မျိုး Sync & Activate လုပ်ပြီးပါပြီ။`);
       await Promise.all([fetchProducts(), fetchEscanorStatus()]);
       setActiveTab("MLBB");
@@ -156,6 +173,27 @@ export default function Products() {
       alert(error.response?.data?.message || "EscanorX product sync မအောင်မြင်ပါ။");
     } finally {
       setSyncingEscanor(false);
+    }
+  };
+
+  const updateEscanorProduct = async (product, changes) => {
+    try {
+      await axios.patch(`${API_URL}/products/${product.id}`, changes);
+      await Promise.all([fetchEscanorStatus(), fetchProducts()]);
+    } catch (error) {
+      alert(error.response?.data?.message || "Product ပြင်ဆင်မှုမအောင်မြင်ပါ။");
+    }
+  };
+
+  const reconcileEscanorOrder = async (order) => {
+    const supplierOrderId = window.prompt("EscanorX Supplier Order ID ထည့်ပါ", order.supplierOrderId || "");
+    if (!supplierOrderId?.trim()) return;
+    try {
+      const res = await axios.post(`${API_URL}/escanor/orders/${order.id}/reconcile`, { supplierOrderId: supplierOrderId.trim() });
+      alert(`Reconciliation ပြီးပါပြီ — ${res.data.status}`);
+      await fetchEscanorOrders();
+    } catch (error) {
+      alert(error.response?.data?.message || "Order reconciliation မအောင်မြင်ပါ။");
     }
   };
 
@@ -183,6 +221,7 @@ export default function Products() {
   useEffect(() => {
     fetchProducts();
     fetchEscanorStatus();
+    fetchEscanorOrders();
   }, []);
 
   // --- Filter Logic ---
@@ -367,12 +406,14 @@ export default function Products() {
                 <span className="rounded-full bg-white/10 px-3 py-1.5 text-slate-200">BR Balance: {escanorStatus?.balance?.br ?? "—"}</span>
               </div>
             </div>
-            <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-2xl xl:grid-cols-[1fr_1fr_auto]">
+            <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-3xl xl:grid-cols-[1fr_1fr_1fr_auto]">
               <label className="text-xs font-bold text-slate-300">Smile Coin တစ်ခု၏ဈေး (MMK)<input type="number" min="1" value={smileCoinRate} onChange={(e) => setSmileCoinRate(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-base font-black text-white outline-none focus:border-cyan-400" /></label>
               <label className="text-xs font-bold text-slate-300">အမြတ်ရာခိုင်နှုန်း (%)<input type="number" min="0" value={profitPercent} onChange={(e) => setProfitPercent(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-base font-black text-white outline-none focus:border-cyan-400" /></label>
+              <label className="text-xs font-bold text-slate-300">Safety Reserve (Coins)<input type="number" min="0" value={safetyReserve} onChange={(e) => setSafetyReserve(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-base font-black text-white outline-none focus:border-cyan-400" /></label>
               <button disabled={syncingEscanor || !escanorStatus?.configured} onClick={syncEscanorProducts} className="flex min-h-12 items-center justify-center gap-2 self-end rounded-xl bg-cyan-400 px-5 py-3 font-black text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50">
                 {syncingEscanor ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />} Sync & Approve
               </button>
+              <label className="flex items-center gap-2 text-xs font-bold text-amber-200 sm:col-span-2 xl:col-span-4"><input type="checkbox" checked={overwritePrices} onChange={(e) => setOverwritePrices(e.target.checked)} className="h-4 w-4 accent-cyan-400" /> Existing custom prices များကိုပါ formula အသစ်ဖြင့် overwrite လုပ်မည်</label>
             </div>
           </div>
           <div className="mt-6 grid gap-4 border-t border-white/10 pt-6 lg:grid-cols-[1fr_1.2fr]">
@@ -392,6 +433,19 @@ export default function Products() {
                 {redeemResponse.balance && <div className="rounded-xl bg-cyan-400/10 p-3 font-bold text-cyan-200">Balance အသစ် — BR: {redeemResponse.balance.br} · PH: {redeemResponse.balance.ph}</div>}
               </div>}
             </div>
+          </div>
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <div className="mb-3 flex items-center justify-between"><div><h3 className="font-black">MLBB Cost & Profit Control</h3><p className="text-xs text-slate-400">Cost တွက်ချက်မှု: (Supplier price − discount) × 10 × {smileCoinRate || 0} MMK</p></div><button onClick={fetchEscanorStatus} className="rounded-lg bg-white/10 p-2 text-cyan-300"><RefreshCw size={16} /></button></div>
+            <div className="max-h-80 overflow-auto rounded-xl border border-white/10">
+              <table className="w-full min-w-[760px] text-left text-xs"><thead className="sticky top-0 bg-slate-900 text-slate-400"><tr><th className="p-3">Package</th><th className="p-3">Cost</th><th className="p-3">Sale</th><th className="p-3">Profit</th><th className="p-3">Margin</th><th className="p-3">Status</th><th className="p-3">Action</th></tr></thead><tbody>
+                {(escanorStatus?.managedProducts || []).map((product) => { const cost=(product.supplierPrice-product.supplierDiscount)*10*Number(smileCoinRate||0); const profit=product.price-cost; const margin=product.price>0?profit/product.price*100:0; return <tr key={product.id} className="border-t border-white/5"><td className="p-3 font-bold">{product.name}</td><td className="p-3">{Math.round(cost).toLocaleString()}</td><td className="p-3 font-bold">{product.price.toLocaleString()}</td><td className={`p-3 font-bold ${profit>0?'text-emerald-300':'text-rose-300'}`}>{Math.round(profit).toLocaleString()}</td><td className={margin<3?'p-3 text-rose-300':'p-3 text-slate-200'}>{margin.toFixed(1)}%</td><td className="p-3">{product.isActive?'✅ Active':'⏸ Paused'}</td><td className="p-3"><div className="flex gap-2"><button onClick={()=>{const value=window.prompt('ရောင်းဈေးအသစ် (MMK)',String(product.price));if(value&&Number(value)>0)updateEscanorProduct(product,{price:Number(value)})}} className="rounded-lg bg-blue-500/20 px-2 py-1 text-blue-200">Price</button><button onClick={()=>updateEscanorProduct(product,{isActive:!product.isActive})} className="rounded-lg bg-white/10 px-2 py-1">{product.isActive?'Pause':'Activate'}</button></div></td></tr> })}
+              </tbody></table>
+            </div>
+          </div>
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <div className="mb-3 flex items-center justify-between"><div><h3 className="font-black">Supplier Order Reconciliation</h3><p className="text-xs text-slate-400">Timeout/processing order ကို EscanorX Order ID ဖြင့်စစ်ပြီး local status ပြန်ညှိပါ။</p></div><button onClick={fetchEscanorOrders} className="rounded-lg bg-white/10 p-2 text-cyan-300"><RefreshCw size={16} /></button></div>
+            {escanorOrders.localOrders?.length ? <div className="space-y-2">{escanorOrders.localOrders.map((order)=><div key={order.id} className="flex flex-col gap-3 rounded-xl bg-amber-400/10 p-3 sm:flex-row sm:items-center sm:justify-between"><div className="text-xs"><b>#{order.id} · {order.product}</b><div className="mt-1 text-slate-400">Player {order.playerId} ({order.zoneId}) · {order.supplierStatus || order.status}</div></div><button onClick={()=>reconcileEscanorOrder(order)} className="rounded-lg bg-amber-400 px-3 py-2 text-xs font-black text-slate-950">Check & Reconcile</button></div>)}</div>:<div className="rounded-xl bg-emerald-400/10 p-4 text-sm font-bold text-emerald-300">✅ Reconciliation လိုအပ်သော order မရှိပါ။</div>}
+            <details className="mt-3 rounded-xl bg-white/5 p-3"><summary className="cursor-pointer text-xs font-black text-slate-300">EscanorX Recent Orders ({escanorOrders.supplierOrders?.length || 0})</summary><div className="mt-3 max-h-56 space-y-2 overflow-auto">{(escanorOrders.supplierOrders || []).map((order,index)=><div key={order.order_id || index} className="flex flex-wrap justify-between gap-2 rounded-lg bg-black/20 p-2 text-xs"><code>{order.order_id}</code><span>Player {order.user_id}</span><b className={order.status==='completed'?'text-emerald-300':'text-amber-300'}>{order.status}</b><span>Cost {order.actual_cost ?? '—'}</span></div>)}</div></details>
           </div>
         </section>
 
