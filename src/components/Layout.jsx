@@ -14,6 +14,7 @@ import {
   Activity,
   ReceiptText,
   Handshake,
+  TrendingUp,
 } from "lucide-react";
 
 const SidebarItem = ({ to, icon: Icon, label, active }) => (
@@ -103,6 +104,12 @@ export default function Layout() {
             icon={ChartNoAxesCombined}
             label="Business Analytics"
             active={location.pathname === "/business-analytics"}
+          />
+          <SidebarItem
+            to="/growth"
+            icon={TrendingUp}
+            label="Customer Growth"
+            active={location.pathname === "/growth"}
           />
           <SidebarItem
             to="/vpn-resellers"

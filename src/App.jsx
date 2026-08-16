@@ -27,6 +27,7 @@ import OperationsStatus from "./pages/OperationsStatus";
 import FinancialReconciliation from "./pages/FinancialReconciliation";
 import ResellerDashboard from "./pages/ResellerDashboard";
 import VpnResellers from "./pages/VpnResellers";
+import GrowthAnalytics from "./pages/GrowthAnalytics";
 
 function App() {
   if (window.location.pathname === "/vpn-check") {
@@ -64,6 +65,7 @@ function App() {
           <Route path="/deleted-vpn-keys" element={<DeletedVpnKeys />} />
           <Route path="/proto-x" element={<ProtoXOperations />} />
           <Route path="/business-analytics" element={<BusinessAnalytics />} />
+          <Route path="/growth" element={<GrowthAnalytics />} />
           <Route path="/vpn-resellers" element={<VpnResellers />} />
           <Route path="/operations" element={<OperationsStatus />} />
           <Route
