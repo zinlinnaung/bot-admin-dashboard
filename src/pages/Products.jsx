@@ -53,6 +53,9 @@ export default function Products() {
   const [smileCoinRate, setSmileCoinRate] = useState("150");
   const [profitPercent, setProfitPercent] = useState("15");
   const [syncingEscanor, setSyncingEscanor] = useState(false);
+  const [redeemCodes, setRedeemCodes] = useState("");
+  const [redeemingCodes, setRedeemingCodes] = useState(false);
+  const [redeemResponse, setRedeemResponse] = useState(null);
 
   // UX States
   const [searchTerm, setSearchTerm] = useState("");
@@ -153,6 +156,27 @@ export default function Products() {
       alert(error.response?.data?.message || "EscanorX product sync မအောင်မြင်ပါ။");
     } finally {
       setSyncingEscanor(false);
+    }
+  };
+
+  const submitRedeemCodes = async () => {
+    const codes = [...new Set(redeemCodes.split(/[\n,]+/).map((code) => code.trim()).filter(Boolean))];
+    if (!codes.length || codes.length > 20) {
+      alert("Redeem Code ၁ ခုမှ ၂၀ ခုအထိ ထည့်ပေးပါ။");
+      return;
+    }
+    if (!window.confirm(`Smile Coin Code ${codes.length} ခုကို Redeem လုပ်မည်။ အသုံးပြုပြီး Code များကို ပြန်ပြင်၍မရပါ။ အတည်ပြုပါသလား?`)) return;
+    setRedeemingCodes(true);
+    setRedeemResponse(null);
+    try {
+      const res = await axios.post(`${API_URL}/escanor/redeem`, { codes });
+      setRedeemResponse(res.data);
+      setRedeemCodes("");
+      await fetchEscanorStatus();
+    } catch (error) {
+      setRedeemResponse({ success: false, error: error.response?.data?.message || "Redeem မအောင်မြင်ပါ။" });
+    } finally {
+      setRedeemingCodes(false);
     }
   };
 
@@ -349,6 +373,24 @@ export default function Products() {
               <button disabled={syncingEscanor || !escanorStatus?.configured} onClick={syncEscanorProducts} className="flex min-h-12 items-center justify-center gap-2 self-end rounded-xl bg-cyan-400 px-5 py-3 font-black text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50">
                 {syncingEscanor ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />} Sync & Approve
               </button>
+            </div>
+          </div>
+          <div className="mt-6 grid gap-4 border-t border-white/10 pt-6 lg:grid-cols-[1fr_1.2fr]">
+            <div>
+              <div className="mb-2 flex items-center gap-2"><Gift size={18} className="text-violet-300" /><h3 className="font-black">Smile Coin Code Redeem</h3></div>
+              <p className="mb-3 text-xs leading-5 text-slate-400">Code တစ်ကြောင်းစီထည့်ပါ။ တစ်ကြိမ်လျှင် အများဆုံး ၂၀ ခု Redeem လုပ်နိုင်ပါသည်။ Code များကို database တွင် မသိမ်းပါ။</p>
+              <textarea autoComplete="off" spellCheck="false" rows="5" value={redeemCodes} onChange={(e) => setRedeemCodes(e.target.value)} placeholder={"CODE-ONE\nCODE-TWO\nCODE-THREE"} className="w-full resize-y rounded-xl border border-white/10 bg-black/20 px-4 py-3 font-mono text-sm text-white outline-none placeholder:text-slate-600 focus:border-violet-400" />
+              <button disabled={redeemingCodes || !escanorStatus?.configured || !redeemCodes.trim()} onClick={submitRedeemCodes} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-5 py-3 font-black text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-50">
+                {redeemingCodes ? <Loader2 className="animate-spin" size={18} /> : <Gift size={18} />} Redeem & Check Balance
+              </button>
+            </div>
+            <div className="min-h-48 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <p className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">API Response</p>
+              {!redeemResponse ? <p className="text-sm text-slate-500">Redeem ပြုလုပ်ပြီးပါက result နှင့် balance အသစ်ကို ဒီနေရာမှာ ပြပါမည်။</p> : redeemResponse.error ? <div className="rounded-xl bg-rose-500/10 p-4 text-sm font-bold text-rose-300">❌ {redeemResponse.error}</div> : <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-3 gap-2"><div className="rounded-xl bg-white/5 p-3"><span className="block text-xs text-slate-400">Total</span><b>{redeemResponse.summary?.total ?? 0}</b></div><div className="rounded-xl bg-emerald-500/10 p-3 text-emerald-300"><span className="block text-xs">Success</span><b>{redeemResponse.summary?.success ?? 0}</b></div><div className="rounded-xl bg-rose-500/10 p-3 text-rose-300"><span className="block text-xs">Failed</span><b>{redeemResponse.summary?.failed ?? 0}</b></div></div>
+                <div className="max-h-44 space-y-2 overflow-y-auto pr-1">{(redeemResponse.results || []).map((result, index) => <div key={`${result.code}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-white/5 px-3 py-2"><span className="font-mono text-xs text-slate-300">{result.code || `Code ${index + 1}`}</span><span className={result.status === "success" ? "font-bold text-emerald-300" : "font-bold text-rose-300"}>{result.status === "success" ? `+${result.amount} (${result.country})` : result.message || "Failed"}</span></div>)}</div>
+                {redeemResponse.balance && <div className="rounded-xl bg-cyan-400/10 p-3 font-bold text-cyan-200">Balance အသစ် — BR: {redeemResponse.balance.br} · PH: {redeemResponse.balance.ph}</div>}
+              </div>}
             </div>
           </div>
         </section>
