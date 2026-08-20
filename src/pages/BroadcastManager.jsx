@@ -28,6 +28,34 @@ const previewMessage = (message) =>
     .replace(/<tg-spoiler>(.*?)<\/tg-spoiler>/gi, "▰▰▰▰")
     .replace(/<[^>]+>/g, "");
 
+const applySavedCustomEmojis = (message, emojis) => {
+  const seenFallbacks = new Set();
+  const usable = emojis.filter((emoji) => {
+    const fallback = emoji.fallback?.trim();
+    if (!fallback || seenFallbacks.has(fallback)) return false;
+    seenFallbacks.add(fallback);
+    return true;
+  });
+  let replacements = 0;
+  const converted = message
+    .split(/(<tg-emoji\b[^>]*>[\s\S]*?<\/tg-emoji>|<[^>]+>)/gi)
+    .map((token) => {
+      if (token.startsWith("<")) return token;
+      let result = token;
+      for (const emoji of usable) {
+        const parts = result.split(emoji.fallback);
+        if (parts.length === 1) continue;
+        replacements += parts.length - 1;
+        result = parts.join(
+          `<tg-emoji emoji-id="${emoji.customEmojiId}">${emoji.fallback}</tg-emoji>`,
+        );
+      }
+      return result;
+    })
+    .join("");
+  return { message: converted, replacements };
+};
+
 export default function BroadcastManager() {
   const textareaRef = useRef(null);
   const [message, setMessage] = useState("");
@@ -118,14 +146,23 @@ export default function BroadcastManager() {
       alert(isCallback ? "Callback data ထည့်ပါ။" : "Button URL ထည့်ပါ။");
       return;
     }
-    if (!window.confirm("Customer အားလုံးထံ Broadcast ပို့ရန် အတည်ပြုပါသလား?"))
+    const prepared = applySavedCustomEmojis(message, emojis);
+    if (prepared.replacements > 0) setMessage(prepared.message);
+    const conversionNotice = prepared.replacements
+      ? `\n\nCustom emoji ${prepared.replacements} ခုကို animated emoji အဖြစ် အလိုအလျောက်ပြောင်းထားပါသည်။`
+      : "";
+    if (
+      !window.confirm(
+        `Customer အားလုံးထံ Broadcast ပို့ရန် အတည်ပြုပါသလား?${conversionNotice}`,
+      )
+    )
       return;
 
     setIsSending(true);
     setResult(null);
     try {
       const { data } = await axios.post(`${API_URL}/broadcast`, {
-        message,
+        message: prepared.message,
         buttons: btnText
           ? [
               [
@@ -137,7 +174,11 @@ export default function BroadcastManager() {
             ]
           : [],
       });
-      setResult(data);
+      setResult({
+        ...data,
+        convertedCustomEmojis:
+          prepared.replacements + (data.convertedCustomEmojis || 0),
+      });
       setMessage("");
       setBtnText("");
       setBtnUrl("");
@@ -179,6 +220,12 @@ export default function BroadcastManager() {
               {result.message} ခန့်မှန်းကြာချိန်{" "}
               {result.estimatedTimeMinutes || 1} မိနစ်။
             </p>
+            {result.convertedCustomEmojis > 0 && (
+              <p className="mt-1 text-xs font-bold">
+                Animated custom emoji {result.convertedCustomEmojis} ခု
+                အလိုအလျောက်ပြောင်းပြီးပါပြီ။
+              </p>
+            )}
           </div>
         </div>
       )}
