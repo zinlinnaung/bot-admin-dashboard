@@ -17,6 +17,8 @@ function MetricCard({ label, value, note }) {
 
 export default function BusinessAnalytics() {
   const [data, setData] = useState(null);
+  const [clickData, setClickData] = useState(null);
+  const [clickDays, setClickDays] = useState(30);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -25,6 +27,13 @@ export default function BusinessAnalytics() {
       .then((response) => setData(response.data))
       .catch(() => setError("Business analytics ကို မရယူနိုင်သေးပါ။"));
   }, []);
+
+  useEffect(() => {
+    axios
+      .get(`${API_BASE_URL}/admin/product-click-analytics?days=${clickDays}`)
+      .then((response) => setClickData(response.data))
+      .catch(() => setClickData(null));
+  }, [clickDays]);
 
   if (error)
     return <div className="rounded-xl bg-red-50 p-5 text-red-700">{error}</div>;
@@ -106,22 +115,141 @@ export default function BusinessAnalytics() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {cards.map((item) => <MetricCard key={item.label} {...item} />)}
+        {cards.map((item) => (
+          <MetricCard key={item.label} {...item} />
+        ))}
       </div>
 
       <section className="rounded-xl bg-white p-5 shadow">
-        <h2 className="mb-4 text-xl font-bold">Reseller Performance (၃၀ ရက်)</h2>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold">
+              Product Button Click Analytics
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Product ပြသမှု၊ button နှိပ်မှုနဲ့ ဝယ်ယူသူပြောင်းလဲမှုကို
+              တိုင်းတာထားပါသည်။
+            </p>
+          </div>
+          <select
+            value={clickDays}
+            onChange={(event) => setClickDays(Number(event.target.value))}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold"
+          >
+            <option value={7}>၇ ရက်</option>
+            <option value={30}>၃၀ ရက်</option>
+            <option value={90}>၉၀ ရက်</option>
+            <option value={365}>၁ နှစ်</option>
+          </select>
+        </div>
+
+        {clickData ? (
+          <>
+            <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                label="Product ပြသမှု"
+                value={formatNumber(clickData.totals?.impressions)}
+              />
+              <MetricCard
+                label="စုစုပေါင်း Clicks"
+                value={formatNumber(clickData.totals?.clicks)}
+              />
+              <MetricCard
+                label="Click လုပ်သူ"
+                value={formatNumber(clickData.totals?.uniqueClickUsers)}
+                note="Unique customers"
+              />
+              <MetricCard
+                label="Completed Orders"
+                value={formatNumber(clickData.totals?.orders)}
+              />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[920px] text-left text-sm">
+                <thead>
+                  <tr className="border-b text-gray-500">
+                    <th className="p-3">Product</th>
+                    <th className="p-3">ပြသမှု</th>
+                    <th className="p-3">Clicks</th>
+                    <th className="p-3">Unique Users</th>
+                    <th className="p-3">Click Rate</th>
+                    <th className="p-3">Click Share</th>
+                    <th className="p-3">Orders</th>
+                    <th className="p-3">Purchase Conversion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clickData.products.map((item) => (
+                    <tr key={item.id} className="border-b last:border-0">
+                      <td className="p-3">
+                        <div className="font-semibold text-gray-900">
+                          {item.name}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {item.category}
+                          {item.subCategory ? ` / ${item.subCategory}` : ""}
+                        </div>
+                      </td>
+                      <td className="p-3">{formatNumber(item.impressions)}</td>
+                      <td className="p-3 font-bold text-indigo-600">
+                        {formatNumber(item.clicks)}
+                      </td>
+                      <td className="p-3">
+                        {formatNumber(item.uniqueClickUsers)}
+                      </td>
+                      <td className="p-3">{item.clickRate}%</td>
+                      <td className="p-3">{item.clickShare}%</td>
+                      <td className="p-3">{formatNumber(item.orders)}</td>
+                      <td className="p-3">{item.purchaseConversionRate}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-4 text-xs text-gray-400">
+              Click Rate = Clicks ÷ Product ပြသမှု။ Purchase Conversion =
+              ဝယ်ယူသူ ÷ Click လုပ်သူ။ Tracking စတင်ပြီးနောက် data သာပါဝင်ပါမည်။
+            </p>
+          </>
+        ) : (
+          <div className="rounded-xl bg-gray-50 p-5 text-sm text-gray-500">
+            Click analytics တင်နေသည်…
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl bg-white p-5 shadow">
+        <h2 className="mb-4 text-xl font-bold">
+          Reseller Performance (၃၀ ရက်)
+        </h2>
         <div className="grid gap-4 md:grid-cols-4">
-          <MetricCard label="Completed keys" value={formatNumber(data.reseller?.completedOrders30Days)} />
-          <MetricCard label="Business wholesale revenue" value={formatMoney(data.reseller?.wholesaleRevenueMMK)} />
-          <MetricCard label="Reported retail value" value={formatMoney(data.reseller?.reportedRetailValueMMK)} note={`${formatNumber(data.reseller?.ordersWithRetailPrice)} orders with retail price`} />
-          <MetricCard label="Reported reseller margin" value={formatMoney(data.reseller?.reportedGrossMarginMMK)} note="Retail price ဖြည့်ထားသည့် order များအပေါ်သာ" />
+          <MetricCard
+            label="Completed keys"
+            value={formatNumber(data.reseller?.completedOrders30Days)}
+          />
+          <MetricCard
+            label="Business wholesale revenue"
+            value={formatMoney(data.reseller?.wholesaleRevenueMMK)}
+          />
+          <MetricCard
+            label="Reported retail value"
+            value={formatMoney(data.reseller?.reportedRetailValueMMK)}
+            note={`${formatNumber(data.reseller?.ordersWithRetailPrice)} orders with retail price`}
+          />
+          <MetricCard
+            label="Reported reseller margin"
+            value={formatMoney(data.reseller?.reportedGrossMarginMMK)}
+            note="Retail price ဖြည့်ထားသည့် order များအပေါ်သာ"
+          />
         </div>
       </section>
 
       <section className="rounded-xl bg-white p-5 shadow">
         <h2 className="mb-1 text-xl font-bold">Package ရောင်းအား (၃၀ ရက်)</h2>
-        <p className="mb-4 text-sm text-gray-500">Completed order များကို payment approve အချိန်အလိုက်တွက်ထားသည်။ အဟောင်းများမှာ order created time ကိုအသုံးပြုသည်။</p>
+        <p className="mb-4 text-sm text-gray-500">
+          Completed order များကို payment approve အချိန်အလိုက်တွက်ထားသည်။
+          အဟောင်းများမှာ order created time ကိုအသုံးပြုသည်။
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -135,7 +263,10 @@ export default function BusinessAnalytics() {
             </thead>
             <tbody>
               {data.packages.map((item) => (
-                <tr key={`${item.productId}-${item.channel}`} className="border-b">
+                <tr
+                  key={`${item.productId}-${item.channel}`}
+                  className="border-b"
+                >
                   <td className="p-3 font-medium">{item.name}</td>
                   <td className="p-3">{item.category}</td>
                   <td className="p-3">{item.channel}</td>
@@ -144,7 +275,11 @@ export default function BusinessAnalytics() {
                 </tr>
               ))}
               {data.packages.length === 0 && (
-                <tr><td className="p-4 text-gray-500" colSpan="5">ပြီးခဲ့သည့် ၃၀ ရက်အတွင်း completed order မရှိပါ။</td></tr>
+                <tr>
+                  <td className="p-4 text-gray-500" colSpan="5">
+                    ပြီးခဲ့သည့် ၃၀ ရက်အတွင်း completed order မရှိပါ။
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
