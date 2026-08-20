@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import {
-  Users,
-  ArrowUpCircle,
-  TrendingUp,
-  DollarSign,
   Activity,
-  Wallet,
-  Trophy,
+  ArrowDownCircle,
+  ArrowRight,
+  ArrowUpCircle,
+  Clock,
+  DollarSign,
   Loader2,
-  Settings2,
+  RefreshCw,
   ShieldCheck,
-  Percent,
-  Clock, // Added Icon
+  TrendingUp,
+  Users,
 } from "lucide-react";
 import StatCard from "../components/StatCard";
+
+const API_URL = "https://api.prototypeconnect.xyz";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -29,400 +31,226 @@ export default function Dashboard() {
     deletedVpnKeys: 0,
     monthlyRevenue: 0,
   });
-
-  // 💡 Bet Settings States
-  const [settings, setSettings] = useState({
-    winRatio: 40,
-    minBet: 500,
-    maxBet: 100000,
-    payoutMultiplier: 1.8,
-  });
-
   const [loading, setLoading] = useState(true);
-  const [settleLoading, setSettleLoading] = useState(false);
-  const [saveLoading, setSaveLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  // Result Settle States
-  const [winNum, setWinNum] = useState("");
-  const [gameType, setGameType] = useState("2D");
-  // ✅ NEW: Session State added
-  const [session, setSession] = useState("MORNING");
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async (manual = false) => {
+    if (manual) setRefreshing(true);
     try {
-      // Fetch Stats & Settings together
-      const [statsRes, settingsRes] = await Promise.all([
-        axios.get("https://api.prototypeconnect.xyz/admin/dashboard-stats"),
-        axios.get("https://api.prototypeconnect.xyz/admin/settings"),
-      ]);
-
-      setStats(statsRes.data);
-      if (settingsRes.data) {
-        setSettings({
-          winRatio: parseInt(settingsRes.data.winRatio || 40),
-          minBet: parseInt(settingsRes.data.minBet || 500),
-          maxBet: parseInt(settingsRes.data.maxBet || 100000),
-          payoutMultiplier: parseFloat(
-            settingsRes.data.payoutMultiplier || 1.8,
-          ),
-        });
-      }
-    } catch (error) {
-      console.error("Data fetch error:", error);
+      const { data } = await axios.get(`${API_URL}/admin/dashboard-stats`);
+      setStats((current) => ({ ...current, ...data }));
+      setLastUpdated(new Date());
+      setError("");
+    } catch (requestError) {
+      console.error("Dashboard data fetch error:", requestError);
+      setError("Dashboard data ကို ယာယီရယူ၍မရပါ။ ခဏအကြာ Refresh ပြန်လုပ်ပါ။");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  const handleSettleResult = async () => {
-    if (!winNum) return alert("ပေါက်ဂဏန်း ရိုက်ထည့်ပါ");
-
-    // ✅ Updated confirmation text to include Session
-    const confirmText = `${gameType} (${session}) ပေါက်ဂဏန်း [ ${winNum} ] အတည်ပြုပါသလား?`;
-    if (!window.confirm(confirmText)) return;
-
-    setSettleLoading(true);
-    try {
-      const res = await axios.post(
-        "https://api.prototypeconnect.xyz/admin/settle-result",
-        {
-          type: gameType,
-          winNumber: winNum,
-          session: session, // ✅ Sending session to backend
-        },
-      );
-
-      if (res.data.success) {
-        // ✅ Handle winCount safely
-        alert(
-          `အောင်မြင်သည်! 🎉\nပေါက်သူစုစုပေါင်း: ${res.data.winCount || 0} ဦး`,
-        );
-        setWinNum("");
-      } else {
-        alert(res.data.message);
-      }
-
-      fetchData();
-    } catch (error) {
-      console.error(error);
-      const msg =
-        error.response?.data?.message || "Result ထုတ်ပြန်ခြင်း မအောင်မြင်ပါ";
-      alert(`Error: ${msg}`);
-    } finally {
-      setSettleLoading(false);
-    }
-  };
-
-  // 💡 Save Bet Settings
-  const handleUpdateSettings = async () => {
-    setSaveLoading(true);
-    try {
-      await axios.post(
-        "https://api.prototypeconnect.xyz/admin/update-settings",
-        settings,
-      );
-      alert("ဂိမ်း Settings များ အောင်မြင်စွာ Update လုပ်ပြီးပါပြီ ✅");
-    } catch (error) {
-      alert("Settings update လုပ်ရာတွင် အမှားအယွင်းရှိနေပါသည်");
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (loading)
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="animate-spin text-indigo-600" size={40} />
-      </div>
-
-    );
-  }
-
-  return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            Financial Intelligence
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Real-time system monitoring & risk management control.
+      <div className="grid min-h-[60vh] place-items-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto animate-spin text-cyan-600" size={36} />
+          <p className="mt-3 text-sm font-semibold text-slate-500">
+            Business data တင်နေပါသည်…
           </p>
         </div>
-        <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-2xl text-xs font-bold border border-emerald-100 uppercase tracking-wider">
-          System Online
-        </div>
       </div>
+    );
 
-      {/* Financial Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+  const pendingDeposits = stats.deposits?.length || 0;
+  const pendingWithdrawals = stats.withdrawals?.length || 0;
+  const pendingTotal = pendingDeposits + pendingWithdrawals;
+
+  return (
+    <div className="space-y-7">
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-bold text-cyan-700">
+            Game Gear MM Operations
+          </p>
+          <h2 className="mt-1 text-3xl font-black tracking-tight text-slate-950">
+            Business Overview
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm text-slate-500">
+            Sales၊ customers၊ VPN keys နဲ့ လုပ်ဆောင်ရန်ကျန်ရှိသည့် approvals
+            များကို တစ်နေရာတည်းမှ ကြည့်နိုင်ပါသည်။
+          </p>
+        </div>
+        <button
+          onClick={() => fetchData(true)}
+          disabled={refreshing}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-cyan-300 hover:text-cyan-700 disabled:opacity-60"
+        >
+          <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />{" "}
+          Refresh
+        </button>
+      </section>
+
+      {error && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+          {error}
+        </div>
+      )}
+
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Today's Revenue"
-          value={`${(stats.todayRevenue || 0).toLocaleString()} MMK`}
+          value={`${Number(stats.todayRevenue || 0).toLocaleString()} MMK`}
           icon={DollarSign}
-          color="bg-indigo-600"
+          color="bg-blue-600"
         />
         <StatCard
-          title="Today's Payouts"
-          value={`${(stats.todayWithdraw || 0).toLocaleString()} MMK`}
-          icon={ArrowUpCircle}
-          color="bg-rose-500"
-        />
-        <StatCard
-          title="Wallet Cash Flow"
-          value={`${(stats.todayCashFlow || 0).toLocaleString()} MMK`}
+          title="Monthly Revenue"
+          value={`${Number(stats.monthlyRevenue || 0).toLocaleString()} MMK`}
           icon={TrendingUp}
-          color={stats.todayCashFlow >= 0 ? "bg-emerald-500" : "bg-red-600"}
+          color="bg-violet-600"
         />
         <StatCard
-          title="Total Users"
-          value={stats.userCount}
-          icon={Users}
-          color="bg-blue-500"
+          title="Active VPN Keys"
+          value={stats.activeVpnKeys || 0}
+          icon={ShieldCheck}
+          color="bg-emerald-600"
         />
-      </div>
+        <StatCard
+          title="Total Customers"
+          value={stats.userCount || 0}
+          icon={Users}
+          color="bg-cyan-600"
+        />
+      </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Active VPN Keys" value={stats.activeVpnKeys || 0} icon={ShieldCheck} color="bg-emerald-600" />
-        <StatCard title="Expiring in 3 Days" value={stats.expiringSoon || 0} icon={Clock} color="bg-amber-500" />
-        <StatCard title="Deleted Key History" value={stats.deletedVpnKeys || 0} icon={Activity} color="bg-rose-500" />
-        <StatCard title="Monthly Revenue" value={`${(stats.monthlyRevenue || 0).toLocaleString()} MMK`} icon={DollarSign} color="bg-violet-600" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 🏆 Result Announcement Panel */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100 relative">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 bg-amber-100 rounded-2xl">
-                <Trophy className="text-amber-600" size={24} />
-              </div>
-              <h3 className="text-xl font-bold text-gray-800">
-                Announce Game Results
+      <section className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                Action Center
+              </p>
+              <h3 className="mt-1 text-xl font-black text-slate-900">
+                Pending approvals
               </h3>
             </div>
-
-            {/* ✅ Changed to grid-cols-4 to fit Session input */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-500 ml-1">
-                  Game Type
-                </label>
-                <select
-                  value={gameType}
-                  onChange={(e) => setGameType(e.target.value)}
-                  className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                >
-                  <option value="2D">2D Game</option>
-                  <option value="3D">3D Game</option>
-                </select>
-              </div>
-
-              {/* ✅ NEW: Session Selector */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-500 ml-1">
-                  Session
-                </label>
-                <select
-                  value={session}
-                  onChange={(e) => setSession(e.target.value)}
-                  className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                >
-                  <option value="MORNING">Morning (12:01)</option>
-                  <option value="EVENING">Evening (04:30)</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-500 ml-1">
-                  Winning Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 84"
-                  value={winNum}
-                  onChange={(e) => setWinNum(e.target.value)}
-                  className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-
-              <div className="flex items-end">
-                <button
-                  onClick={handleSettleResult}
-                  disabled={settleLoading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2"
-                >
-                  {settleLoading ? (
-                    <Loader2 className="animate-spin" size={20} />
-                  ) : (
-                    "Settle"
-                  )}
-                </button>
-              </div>
-            </div>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-black ${pendingTotal ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}
+            >
+              {pendingTotal} pending
+            </span>
           </div>
-
-          {/* 💡 ⚙️ High-Low Bet Settings Panel */}
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100">
-            <div className="flex justify-between items-center mb-8">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-100 rounded-2xl">
-                  <Settings2 className="text-indigo-600" size={24} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              to="/deposits"
+              className="group rounded-2xl border border-slate-200 p-4 transition hover:border-blue-300 hover:bg-blue-50/50"
+            >
+              <div className="flex items-center justify-between">
+                <div className="rounded-xl bg-blue-100 p-2.5 text-blue-700">
+                  <ArrowDownCircle size={21} />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-800">
-                    High-Low Risk Control
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    Manage win ratio and bet limits
-                  </p>
+                <ArrowRight
+                  size={18}
+                  className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-blue-600"
+                />
+              </div>
+              <p className="mt-4 text-2xl font-black text-slate-900">
+                {pendingDeposits}
+              </p>
+              <p className="text-sm font-semibold text-slate-500">
+                Deposit requests
+              </p>
+            </Link>
+            <Link
+              to="/withdrawals"
+              className="group rounded-2xl border border-slate-200 p-4 transition hover:border-rose-300 hover:bg-rose-50/50"
+            >
+              <div className="flex items-center justify-between">
+                <div className="rounded-xl bg-rose-100 p-2.5 text-rose-700">
+                  <ArrowUpCircle size={21} />
                 </div>
-              </div>
-              <button
-                onClick={handleUpdateSettings}
-                disabled={saveLoading}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all flex items-center gap-2"
-              >
-                {saveLoading ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  "Save Changes"
-                )}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Win Ratio Slider */}
-              <div className="space-y-4 bg-gray-50 p-6 rounded-3xl">
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center gap-2 text-sm font-bold text-gray-600">
-                    <Percent size={16} /> Win Ratio (RTP)
-                  </span>
-                  <span className="text-indigo-600 font-black text-xl">
-                    {settings.winRatio}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={settings.winRatio}
-                  onChange={(e) =>
-                    setSettings({ ...settings, winRatio: e.target.value })
-                  }
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                />
-                <p className="text-[10px] text-gray-400 font-medium">
-                  * 30-40% is recommended for consistent house profit.
-                </p>
-              </div>
-
-              {/* Payout Multiplier */}
-              <div className="space-y-4 bg-gray-50 p-6 rounded-3xl">
-                <span className="flex items-center gap-2 text-sm font-bold text-gray-600">
-                  <TrendingUp size={16} /> Payout Multiplier
-                </span>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={settings.payoutMultiplier}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      payoutMultiplier: e.target.value,
-                    })
-                  }
-                  className="w-full bg-white border-none rounded-xl px-4 py-3 text-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                <ArrowRight
+                  size={18}
+                  className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-rose-600"
                 />
               </div>
-
-              {/* Min Bet */}
-              <div className="space-y-4 bg-gray-50 p-6 rounded-3xl">
-                <span className="flex items-center gap-2 text-sm font-bold text-gray-600">
-                  <Wallet size={16} /> Minimum Bet (MMK)
-                </span>
-                <input
-                  type="number"
-                  value={settings.minBet}
-                  onChange={(e) =>
-                    setSettings({ ...settings, minBet: e.target.value })
-                  }
-                  className="w-full bg-white border-none rounded-xl px-4 py-3 text-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-
-              {/* Max Bet */}
-              <div className="space-y-4 bg-gray-50 p-6 rounded-3xl">
-                <span className="flex items-center gap-2 text-sm font-bold text-gray-600">
-                  <ShieldCheck size={16} /> Maximum Bet (MMK)
-                </span>
-                <input
-                  type="number"
-                  value={settings.maxBet}
-                  onChange={(e) =>
-                    setSettings({ ...settings, maxBet: e.target.value })
-                  }
-                  className="w-full bg-white border-none rounded-xl px-4 py-3 text-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-            </div>
+              <p className="mt-4 text-2xl font-black text-slate-900">
+                {pendingWithdrawals}
+              </p>
+              <p className="text-sm font-semibold text-slate-500">
+                Withdrawal requests
+              </p>
+            </Link>
           </div>
+          <Link
+            to="/order"
+            className="mt-3 flex items-center justify-between rounded-2xl bg-slate-950 px-4 py-3.5 text-sm font-bold text-white transition hover:bg-slate-800"
+          >
+            <span>Customer & MLBB orders ကြည့်မည်</span>
+            <ArrowRight size={18} />
+          </Link>
         </div>
 
-        {/* Side Panel: System Health & Pending Actions */}
-        <div className="space-y-6">
-          <div className="bg-gray-900 text-white p-8 rounded-[2.5rem] shadow-2xl">
-            <h3 className="font-bold mb-6 flex items-center gap-2 text-indigo-400">
-              <Activity size={18} /> System Status
-            </h3>
-            <div className="space-y-5">
-              <div className="flex justify-between items-center p-4 bg-white/5 rounded-3xl border border-white/10">
-                <span className="text-sm text-gray-300">New Deposits</span>
-                <span className="bg-indigo-500 px-3 py-1 rounded-xl text-xs font-black">
-                  {stats.deposits?.length || 0}
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-white/5 rounded-3xl border border-white/10">
-                <span className="text-sm text-gray-300">Withdraw Requests</span>
-                <span className="bg-rose-500 px-3 py-1 rounded-xl text-xs font-black">
-                  {stats.withdrawals?.length || 0}
-                </span>
-              </div>
-
-              <div className="pt-4 space-y-2">
-                <div className="flex justify-between text-[10px] uppercase tracking-widest text-gray-500 font-bold">
-                  <span>Risk Level</span>
-                  <span
-                    className={
-                      settings.winRatio > 50
-                        ? "text-rose-400"
-                        : "text-emerald-400"
-                    }
-                  >
-                    {settings.winRatio > 50 ? "High Risk" : "Stable"}
-                  </span>
-                </div>
-                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-500 ${
-                      settings.winRatio > 50 ? "bg-rose-500" : "bg-emerald-500"
-                    }`}
-                    style={{ width: `${settings.winRatio}%` }}
-                  ></div>
-                </div>
-              </div>
+        <div className="rounded-3xl bg-gradient-to-br from-slate-950 to-slate-800 p-5 text-white shadow-xl sm:p-6">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-cyan-400/15 p-2.5 text-cyan-300">
+              <Activity size={21} />
             </div>
-            <button className="w-full mt-8 py-4 bg-white text-gray-900 rounded-2xl font-bold text-sm hover:bg-gray-100 transition-all">
-              Manage Transactions
-            </button>
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                Operations
+              </p>
+              <h3 className="font-black">System snapshot</h3>
+            </div>
           </div>
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3.5">
+              <span className="text-sm text-slate-300">
+                Expiring within 3 days
+              </span>
+              <strong className="text-amber-300">
+                {stats.expiringSoon || 0}
+              </strong>
+            </div>
+            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3.5">
+              <span className="text-sm text-slate-300">
+                Deleted key records
+              </span>
+              <strong>{stats.deletedVpnKeys || 0}</strong>
+            </div>
+            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3.5">
+              <span className="text-sm text-slate-300">Today's payouts</span>
+              <strong>
+                {Number(stats.todayWithdraw || 0).toLocaleString()} MMK
+              </strong>
+            </div>
+          </div>
+          <Link
+            to="/operations"
+            className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-cyan-50"
+          >
+            Full system status <ArrowRight size={17} />
+          </Link>
         </div>
-      </div>
+      </section>
+
+      <footer className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+        <Clock size={14} />
+        <span>
+          Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : "—"}
+        </span>
+        <span>•</span>
+        <span>
+          Dashboard သည် manual Refresh ဖြင့်သာ API request ထပ်ခေါ်ပါသည်။
+        </span>
+      </footer>
     </div>
   );
 }

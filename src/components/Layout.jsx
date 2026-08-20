@@ -1,187 +1,185 @@
-import React from "react";
-import { Link, useLocation, Outlet } from "react-router-dom"; // Added Outlet
+import React, { useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
+  Activity,
   ArrowDownCircle,
   ArrowUpCircle,
-  Users,
-  LogOut,
-  Package,
-  Gamepad2, // Added a game icon just in case!
-  ShieldOff,
+  BarChart3,
   Bot,
-  ChartNoAxesCombined,
-  Activity,
-  ReceiptText,
+  ChevronRight,
   Handshake,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Package,
+  Radio,
+  ReceiptText,
+  ShieldOff,
+  ShoppingBag,
   TrendingUp,
+  Users,
+  X,
 } from "lucide-react";
 
-const SidebarItem = ({ to, icon: Icon, label, active }) => (
-  <Link
-    to={to}
-    className={`flex items-center gap-3 px-6 py-4 transition-all ${
-      active
-        ? "bg-blue-600 text-white border-r-4 border-blue-300"
-        : "text-gray-400 hover:bg-gray-800 hover:text-white"
-    }`}
-  >
-    <Icon size={20} />
-    <span className="font-medium">{label}</span>
-  </Link>
-);
+const navigation = [
+  {
+    label: "Overview",
+    items: [
+      { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+      {
+        to: "/business-analytics",
+        icon: BarChart3,
+        label: "Business Analytics",
+      },
+      { to: "/growth", icon: TrendingUp, label: "Customer Growth" },
+    ],
+  },
+  {
+    label: "Sales & Customers",
+    items: [
+      { to: "/order", icon: ShoppingBag, label: "Orders" },
+      { to: "/products", icon: Package, label: "Products & MLBB" },
+      { to: "/users", icon: Users, label: "Customers" },
+      { to: "/vpn-resellers", icon: Handshake, label: "VPN Resellers" },
+      { to: "/broadcast", icon: Radio, label: "Broadcast" },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { to: "/deposits", icon: ArrowDownCircle, label: "Deposits" },
+      { to: "/withdrawals", icon: ArrowUpCircle, label: "Withdrawals" },
+      { to: "/transactions", icon: ReceiptText, label: "Transactions" },
+      {
+        to: "/financial-reconciliation",
+        icon: ReceiptText,
+        label: "Financial Audit",
+      },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { to: "/operations", icon: Activity, label: "System Status" },
+      { to: "/deleted-vpn-keys", icon: ShieldOff, label: "Deleted VPN Keys" },
+      { to: "/proto-x", icon: Bot, label: "Proto-X AI" },
+    ],
+  },
+];
 
-export default function Layout() {
-  // Removed children prop
-  const location = useLocation();
+function SidebarContent({ closeMenu }) {
   const logout = () => {
     sessionStorage.removeItem("adminToken");
     window.location.href = "/";
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100 font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 text-white flex flex-col fixed h-full shadow-xl">
-        <div className="p-8">
-          <h1 className="text-2xl font-black tracking-widest text-blue-500">
-            ADMIN HUB
-          </h1>
+    <div className="flex h-full flex-col bg-slate-950 text-white">
+      <div className="border-b border-white/10 px-6 py-6">
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 text-lg font-black shadow-lg shadow-cyan-950/40">
+            G
+          </div>
+          <div>
+            <p className="text-base font-black tracking-wide">GAME GEAR MM</p>
+            <p className="text-xs text-slate-400">Business Control Center</p>
+          </div>
         </div>
-        <nav className="flex-1 mt-4 overflow-y-auto">
-          <SidebarItem
-            to="/"
-            icon={LayoutDashboard}
-            label="Dashboard"
-            active={location.pathname === "/"}
-          />
-          <SidebarItem
-            to="/broadcast"
-            icon={LayoutDashboard}
-            label="Broadcast Manager"
-            active={location.pathname === "/broadcast"}
-          />
-          <SidebarItem
-            to="/deposits"
-            icon={ArrowDownCircle}
-            label="Deposits"
-            active={location.pathname === "/deposits"}
-          />
-          <SidebarItem
-            to="/withdrawals"
-            icon={ArrowUpCircle}
-            label="Withdrawals"
-            active={location.pathname === "/withdrawals"}
-          />
-          <SidebarItem
-            to="/users"
-            icon={Users}
-            label="Users List"
-            active={location.pathname === "/users"}
-          />
-          <SidebarItem
-            to="/products"
-            icon={Package}
-            label="Product Stock"
-            active={location.pathname === "/products"}
-          />
+      </div>
 
-          {/* Link to the game from the sidebar (Optional) */}
-          <SidebarItem
-            to="/transactions"
-            icon={Gamepad2}
-            label="Transaction History"
-            active={location.pathname === "/transactions"}
-          />
-          <SidebarItem
-            to="/deleted-vpn-keys"
-            icon={ShieldOff}
-            label="Deleted VPN Keys"
-            active={location.pathname === "/deleted-vpn-keys"}
-          />
-          <SidebarItem
-            to="/business-analytics"
-            icon={ChartNoAxesCombined}
-            label="Business Analytics"
-            active={location.pathname === "/business-analytics"}
-          />
-          <SidebarItem
-            to="/growth"
-            icon={TrendingUp}
-            label="Customer Growth"
-            active={location.pathname === "/growth"}
-          />
-          <SidebarItem
-            to="/vpn-resellers"
-            icon={Handshake}
-            label="VPN Resellers"
-            active={location.pathname === "/vpn-resellers"}
-          />
-          <SidebarItem
-            to="/proto-x"
-            icon={Bot}
-            label="Proto-X AI"
-            active={location.pathname === "/proto-x"}
-          />
-          <SidebarItem
-            to="/operations"
-            icon={Activity}
-            label="Operations Status"
-            active={location.pathname === "/operations"}
-          />
-          <SidebarItem
-            to="/financial-reconciliation"
-            icon={ReceiptText}
-            label="Financial Audit"
-            active={location.pathname === "/financial-reconciliation"}
-          />
-          <SidebarItem
-            to="/subtitle-translator"
-            icon={Gamepad2}
-            label="Subtitle Translator"
-            active={location.pathname === "/subtitle-translator"}
-          />
-          <SidebarItem
-            to="/order"
-            icon={Gamepad2}
-            label="Game Orders"
-            active={location.pathname === "/order"}
-          />
-          {/* <SidebarItem
-            to="/deduct"
-            icon={Package}
-            label="Deduct Balance"
-            active={location.pathname === "/deduct"}
-          /> */}
-          <SidebarItem
-            to="/2d"
-            icon={Package}
-            label="2D Admin"
-            active={location.pathname === "/2d"}
-          />
-          <SidebarItem
-            to="/lucky-draw"
-            icon={Package}
-            label="Lucky Draw"
-            active={location.pathname === "/lucky-draw"}
-          />
-        </nav>
+      <nav className="profile-scrollbar flex-1 space-y-6 overflow-y-auto px-3 py-5">
+        {navigation.map((section) => (
+          <div key={section.label}>
+            <p className="mb-2 px-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+              {section.label}
+            </p>
+            <div className="space-y-1">
+              {section.items.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === "/"}
+                  onClick={closeMenu}
+                  className={({ isActive }) =>
+                    `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${isActive ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950/30" : "text-slate-300 hover:bg-white/7 hover:text-white"}`
+                  }
+                >
+                  {React.createElement(Icon, { size: 18 })}
+                  <span className="flex-1">{label}</span>
+                  <ChevronRight
+                    size={15}
+                    className="opacity-0 transition group-hover:opacity-60"
+                  />
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
 
-        <div className="p-6 border-t border-gray-800">
-          <button
-            onClick={logout}
-            className="flex items-center gap-3 text-gray-500 hover:text-red-400 transition w-full"
-          >
-            <LogOut size={20} /> <span>Logout</span>
-          </button>
-        </div>
+      <div className="border-t border-white/10 p-4">
+        <button
+          onClick={logout}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-300"
+        >
+          <LogOut size={18} /> Logout
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function Layout() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const currentItem = navigation
+    .flatMap((section) => section.items)
+    .find((item) => item.to === location.pathname);
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 shadow-2xl lg:block">
+        <SidebarContent />
       </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 ml-64 p-8">
-        {/* The Outlet renders the component for the current route */}
-        <Outlet />
-      </main>
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            aria-label="Close navigation"
+            className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="absolute inset-y-0 left-0 w-[86%] max-w-80 shadow-2xl">
+            <SidebarContent closeMenu={() => setMobileOpen(false)} />
+          </aside>
+        </div>
+      )}
+      <div className="lg:pl-72">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <button
+              className="rounded-xl border border-slate-200 p-2 text-slate-600 lg:hidden"
+              onClick={() => setMobileOpen((value) => !value)}
+              aria-label="Open navigation"
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Admin Portal
+              </p>
+              <h1 className="font-black text-slate-800">
+                {currentItem?.label || "Dashboard"}
+              </h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" /> Live
+          </div>
+        </header>
+        <main className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

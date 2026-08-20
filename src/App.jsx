@@ -12,8 +12,6 @@ import TransactionHistory from "./pages/TransactionHistory";
 import GameOrders from "./pages/GameOrders";
 import UserProfileMini from "./pages/UserProfileMini";
 import DeductBalance from "./pages/DeductBalance";
-import TwoDAdmin from "./pages/TwoDAdmin";
-import LuckyDraw from "./pages/LuckyDraw";
 import BroadcastManager from "./pages/BroadcastManager";
 import DigitalStoreApp from "./pages/Landing/DigitalStoreApp";
 import VpnUsageChecker from "./pages/Users";
@@ -30,15 +28,6 @@ import VpnResellers from "./pages/VpnResellers";
 import GrowthAnalytics from "./pages/GrowthAnalytics";
 
 function App() {
-  if (window.location.pathname === "/vpn-check") {
-    return <VpnUsageCheck />;
-  }
-  if (window.location.pathname === "/reseller") {
-    return <ResellerDashboard />;
-  }
-  if (window.location.pathname === "/landing") {
-    return <DigitalStoreApp />;
-  }
   const isTelegramWebApp = Boolean(window.Telegram?.WebApp?.initData);
   const [authenticated, setAuthenticated] = useState(
     isTelegramWebApp || Boolean(sessionStorage.getItem("adminToken")),
@@ -50,6 +39,15 @@ function App() {
     return () => window.removeEventListener("admin-auth-expired", expired);
   }, []);
 
+  if (window.location.pathname === "/vpn-check") {
+    return <VpnUsageCheck />;
+  }
+  if (window.location.pathname === "/reseller") {
+    return <ResellerDashboard />;
+  }
+  if (window.location.pathname === "/landing") {
+    return <DigitalStoreApp />;
+  }
   if (!authenticated) {
     return <AdminLogin onLogin={() => setAuthenticated(true)} />;
   }
@@ -78,8 +76,6 @@ function App() {
           <Route path="/subtitle-translator" element={<VpnUsageChecker />} />
           <Route path="/order" element={<GameOrders />} />
           <Route path="/deduct" element={<DeductBalance />} />
-          <Route path="/2d" element={<TwoDAdmin />} />
-          <Route path="/lucky-draw" element={<LuckyDraw />} />
           <Route path="/broadcast" element={<BroadcastManager />} />
 
           {/* Catch-all inside the layout */}
