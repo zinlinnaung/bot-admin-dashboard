@@ -53,7 +53,6 @@ export default function Products() {
   const [smileCoinRate, setSmileCoinRate] = useState("83.35");
   const [profitPercent, setProfitPercent] = useState("7.35");
   const [safetyReserve, setSafetyReserve] = useState("50");
-  const [overwritePrices, setOverwritePrices] = useState(false);
   const [syncingEscanor, setSyncingEscanor] = useState(false);
   const [redeemCodes, setRedeemCodes] = useState("");
   const [redeemingCodes, setRedeemingCodes] = useState(false);
@@ -188,7 +187,7 @@ export default function Products() {
         markupPercent,
         safetyReserve: Number(safetyReserve),
         activate: true,
-        overwritePrices,
+        overwritePrices: true,
       });
       alert(
         `အောင်မြင်ပါသည်။ MLBB package ${res.data.count} မျိုး Sync & Activate လုပ်ပြီးပါပြီ။`,
@@ -229,7 +228,7 @@ export default function Products() {
         markupPercent,
         safetyReserve: Number(safetyReserve),
         activate: true,
-        overwritePrices,
+        overwritePrices: true,
       });
       alert(
         `PUBG UC package ${res.data.count} မျိုး Sync & Activate ပြီးပါပြီ။`,
@@ -577,16 +576,10 @@ export default function Products() {
                 )}{" "}
                 Sync & Activate PUBG UC
               </button>
-              <label className="flex items-center gap-2 text-xs font-bold text-amber-200 sm:col-span-2 xl:col-span-4">
-                <input
-                  type="checkbox"
-                  checked={overwritePrices}
-                  onChange={(e) => setOverwritePrices(e.target.checked)}
-                  className="h-4 w-4 accent-cyan-400"
-                />{" "}
-                Existing custom prices များကိုပါ formula အသစ်ဖြင့် overwrite
-                လုပ်မည်
-              </label>
+              <p className="text-xs font-bold text-amber-200 sm:col-span-2 xl:col-span-4">
+                ⚠️ Sync နှိပ်တိုင်း existing API package ဈေးအားလုံးကို Smile
+                Coin rate + profit formula အသစ်ဖြင့် ပြန်တွက်ပါမည်။
+              </p>
             </div>
           </div>
           <div className="mt-6 grid gap-4 border-t border-white/10 pt-6 lg:grid-cols-[1fr_1.2fr]">
