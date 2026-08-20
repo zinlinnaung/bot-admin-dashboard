@@ -65,6 +65,7 @@ export default function BroadcastManager() {
   const [isSending, setIsSending] = useState(false);
   const [result, setResult] = useState(null);
   const [emojis, setEmojis] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [emojiLoading, setEmojiLoading] = useState(true);
   const [newEmoji, setNewEmoji] = useState({
     customEmojiId: "",
@@ -84,11 +85,30 @@ export default function BroadcastManager() {
     }
   }, []);
 
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const { data } = await axios.get(`${API_URL}/broadcast-templates`);
+      setTemplates(Array.isArray(data) ? data : []);
+    } catch {
+      setTemplates([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchEmojis();
-    const timer = window.setInterval(fetchEmojis, 30000);
+    fetchTemplates();
+    const timer = window.setInterval(() => {
+      fetchEmojis();
+      fetchTemplates();
+    }, 30000);
     return () => window.clearInterval(timer);
-  }, [fetchEmojis]);
+  }, [fetchEmojis, fetchTemplates]);
+
+  const removeTemplate = async (id) => {
+    if (!window.confirm("ဒီ saved message ကိုဖယ်ရှားမလား?")) return;
+    await axios.delete(`${API_URL}/broadcast-templates/${id}`);
+    setTemplates((current) => current.filter((item) => item.id !== id));
+  };
 
   const insertText = (value) => {
     const input = textareaRef.current;
@@ -243,6 +263,56 @@ export default function BroadcastManager() {
               </p>
             </div>
           </div>
+
+          {templates.length > 0 && (
+            <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-cyan-950">
+                    Telegram မှ Saved Messages
+                  </h3>
+                  <p className="mt-1 text-[11px] text-cyan-700">
+                    Custom emoji ID နေရာအတိအကျပါသော message ကိုရွေးပါ။
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchTemplates}
+                  className="rounded-xl p-2 text-cyan-700 hover:bg-white"
+                >
+                  <RefreshCw size={17} />
+                </button>
+              </div>
+              <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+                {templates.map((template) => (
+                  <div
+                    key={template.id}
+                    className="flex items-center gap-2 rounded-xl border border-cyan-100 bg-white p-2"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setMessage(template.htmlText)}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <p className="truncate text-xs font-bold text-slate-800">
+                        {template.plainText}
+                      </p>
+                      <p className="mt-1 text-[10px] text-slate-400">
+                        Click to use exact animated emojis
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeTemplate(template.id)}
+                      className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="mb-3 flex items-center justify-between">
