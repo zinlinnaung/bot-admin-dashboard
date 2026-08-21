@@ -351,7 +351,7 @@ export default function Products() {
       products.filter(
         (product) =>
           product.isActive &&
-          product.type === PRODUCT_TYPE.API &&
+          [PRODUCT_TYPE.API, PRODUCT_TYPE.MANUAL].includes(product.type) &&
           product.category?.toUpperCase() === "VPN" &&
           product.subCategory?.toUpperCase() === "OUTLINE",
       ),
