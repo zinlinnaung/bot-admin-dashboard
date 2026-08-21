@@ -11,6 +11,8 @@ import {
   Loader2,
   RefreshCw,
   ShieldCheck,
+  ShieldAlert,
+  Server,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -30,6 +32,10 @@ export default function Dashboard() {
     expiringSoon: 0,
     deletedVpnKeys: 0,
     monthlyRevenue: 0,
+    grossRevenue: 0,
+    monthlyServerCostMmk: 80000,
+    monthlyRevenueAfterServerCost: -80000,
+    vpnKeysScheduledForDeletionNext3Days: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -111,10 +117,34 @@ export default function Dashboard() {
           color="bg-blue-600"
         />
         <StatCard
-          title="Monthly Revenue"
+          title="Monthly Gross Revenue"
           value={`${Number(stats.monthlyRevenue || 0).toLocaleString()} MMK`}
           icon={TrendingUp}
           color="bg-violet-600"
+        />
+        <StatCard
+          title="Gross Revenue (All Time)"
+          value={`${Number(stats.grossRevenue || 0).toLocaleString()} MMK`}
+          icon={TrendingUp}
+          color="bg-indigo-600"
+        />
+        <StatCard
+          title="Monthly Server Cost"
+          value={`${Number(stats.monthlyServerCostMmk || 0).toLocaleString()} MMK`}
+          icon={Server}
+          color="bg-rose-600"
+        />
+        <StatCard
+          title="After Server Cost (Month)"
+          value={`${Number(stats.monthlyRevenueAfterServerCost || 0).toLocaleString()} MMK`}
+          icon={DollarSign}
+          color="bg-amber-600"
+        />
+        <StatCard
+          title="VPN Keys: Delete in 3 Days"
+          value={stats.vpnKeysScheduledForDeletionNext3Days || 0}
+          icon={ShieldAlert}
+          color="bg-orange-600"
         />
         <StatCard
           title="Active VPN Keys"
@@ -213,10 +243,12 @@ export default function Dashboard() {
           <div className="mt-6 space-y-3">
             <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3.5">
               <span className="text-sm text-slate-300">
-                Expiring within 3 days
+                VPN keys scheduled for deletion within 3 days
               </span>
               <strong className="text-amber-300">
-                {stats.expiringSoon || 0}
+                {stats.vpnKeysScheduledForDeletionNext3Days ??
+                  stats.expiringSoon ??
+                  0}
               </strong>
             </div>
             <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3.5">

@@ -56,6 +56,21 @@ export default function BusinessAnalytics() {
       note: `${formatNumber(data.revenue.monthlyOrders)} orders • product အားလုံး`,
     },
     {
+      label: "Gross Revenue (၃၀ ရက်)",
+      value: formatMoney(data.finance?.grossRevenue30DaysMMK),
+      note: "Completed orders အားလုံး၏ ရောင်းရငွေစုစုပေါင်း",
+    },
+    {
+      label: "Server Cost (တစ်လ)",
+      value: formatMoney(data.finance?.serverMonthlyCostMMK),
+      note: `$${formatNumber(data.finance?.serverMonthlyCostUSD)} × ${formatNumber(data.finance?.usdToMmkRate)} MMK`,
+    },
+    {
+      label: "Server Cost နှုတ်ပြီးရငွေ (၃၀ ရက်)",
+      value: formatMoney(data.finance?.revenueAfterServerCost30DaysMMK),
+      note: "Supplier/API/payment စရိတ်များ မနှုတ်ရသေးပါ",
+    },
+    {
       label: "VPN ဝင်ငွေ (၃၀ ရက်)",
       value: formatMoney(data.vpnRevenue?.monthlyMMK),
       note: `${formatNumber(data.vpnRevenue?.monthlyOrders)} retail + reseller orders`,
