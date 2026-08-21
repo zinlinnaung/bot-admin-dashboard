@@ -411,7 +411,7 @@ export default function Products() {
 
   const copyText = async (value) => {
     await navigator.clipboard.writeText(value);
-    alert("VPN Key ကို Copy လုပ်ပြီးပါပြီ။");
+    alert("Copy လုပ်ပြီးပါပြီ။");
   };
 
   // --- Handlers (Logic remains unchanged) ---
@@ -1584,6 +1584,27 @@ export default function Products() {
                         <Copy size={18} />
                       </button>
                     </div>
+                    {externalKeyResult.usageCheckerLink && (
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            copyText(externalKeyResult.usageCheckerLink)
+                          }
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-600 px-4 py-3 text-sm font-black text-white hover:bg-cyan-700"
+                        >
+                          <Copy size={16} /> Copy Usage Checker Link
+                        </button>
+                        <a
+                          href={externalKeyResult.usageCheckerLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 py-3 text-sm font-black text-emerald-700"
+                        >
+                          Open Usage Page
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1616,13 +1637,26 @@ export default function Products() {
                             </span>
                           </div>
                           {item.key && !item.vpnKeyDeletedAt && (
-                            <button
-                              type="button"
-                              onClick={() => copyText(item.key)}
-                              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white"
-                            >
-                              <Copy size={14} /> Copy Key
-                            </button>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => copyText(item.key)}
+                                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white"
+                              >
+                                <Copy size={14} /> Copy Key
+                              </button>
+                              {item.usageCheckerLink && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    copyText(item.usageCheckerLink)
+                                  }
+                                  className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-3 py-2 text-xs font-black text-white"
+                                >
+                                  <Copy size={14} /> Copy Usage Link
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                       ))
