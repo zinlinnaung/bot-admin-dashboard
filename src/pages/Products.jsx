@@ -22,6 +22,8 @@ import {
   LayoutGrid,
   RefreshCw,
   ShieldCheck,
+  UserPlus,
+  Copy,
 } from "lucide-react";
 
 const API_URL = "https://api.prototypeconnect.xyz/admin";
@@ -69,6 +71,14 @@ export default function Products() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [isViewKeysOpen, setIsViewKeysOpen] = useState(false);
+  const [isExternalKeyModalOpen, setIsExternalKeyModalOpen] = useState(false);
+  const [externalKeyForm, setExternalKeyForm] = useState({
+    customerName: "",
+    productId: "",
+  });
+  const [externalKeyResult, setExternalKeyResult] = useState(null);
+  const [externalKeyHistory, setExternalKeyHistory] = useState([]);
+  const [generatingExternalKey, setGeneratingExternalKey] = useState(false);
 
   // --- New State ---
   const [isBulkPriceModalOpen, setIsBulkPriceModalOpen] = useState(false);
@@ -336,6 +346,74 @@ export default function Products() {
     return { total, outOfStock, apiCount };
   }, [products]);
 
+  const outlineVpnProducts = useMemo(
+    () =>
+      products.filter(
+        (product) =>
+          product.isActive &&
+          product.type === PRODUCT_TYPE.API &&
+          product.category?.toUpperCase() === "VPN" &&
+          product.subCategory?.toUpperCase() === "OUTLINE",
+      ),
+    [products],
+  );
+
+  const fetchExternalKeyHistory = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/vpn/external-keys`);
+      setExternalKeyHistory(response.data || []);
+    } catch (error) {
+      console.error("External VPN key history fetch failed", error);
+    }
+  };
+
+  const openExternalKeyModal = () => {
+    setExternalKeyResult(null);
+    setExternalKeyForm((current) => ({
+      ...current,
+      productId: current.productId || String(outlineVpnProducts[0]?.id || ""),
+    }));
+    setIsExternalKeyModalOpen(true);
+    fetchExternalKeyHistory();
+  };
+
+  const generateExternalVpnKey = async (event) => {
+    event.preventDefault();
+    if (!externalKeyForm.customerName.trim() || !externalKeyForm.productId)
+      return;
+    if (
+      !window.confirm(
+        `${externalKeyForm.customerName.trim()} အတွက် VPN Key ထုတ်မည်။ အတည်ပြုပါသလား?`,
+      )
+    )
+      return;
+
+    setGeneratingExternalKey(true);
+    setExternalKeyResult(null);
+    try {
+      const response = await axios.post(`${API_URL}/vpn/external-key`, {
+        customerName: externalKeyForm.customerName.trim(),
+        productId: Number(externalKeyForm.productId),
+        requestId: crypto.randomUUID(),
+      });
+      setExternalKeyResult(response.data);
+      setExternalKeyForm((current) => ({ ...current, customerName: "" }));
+      await Promise.all([fetchExternalKeyHistory(), fetchProducts()]);
+    } catch (error) {
+      alert(
+        error.response?.data?.message ||
+          "External customer အတွက် VPN Key ထုတ်မရပါ။",
+      );
+    } finally {
+      setGeneratingExternalKey(false);
+    }
+  };
+
+  const copyText = async (value) => {
+    await navigator.clipboard.writeText(value);
+    alert("VPN Key ကို Copy လုပ်ပြီးပါပြီ။");
+  };
+
   // --- Handlers (Logic remains unchanged) ---
   const handleSaveProduct = async (e) => {
     e.preventDefault();
@@ -453,6 +531,13 @@ export default function Products() {
           </button> */}
 
           <div className="flex flex-wrap gap-3">
+            <button
+              onClick={openExternalKeyModal}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 shadow-lg shadow-emerald-100"
+            >
+              <UserPlus size={20} /> External VPN Key
+            </button>
+
             {/* New Bulk Button */}
             <button
               onClick={() => setIsBulkPriceModalOpen(true)}
@@ -1383,6 +1468,172 @@ export default function Products() {
                   Confirm & Save Product
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+
+        {isExternalKeyModalOpen && (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+            <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-2xl">
+              <div className="flex items-start justify-between border-b border-slate-100 p-6 sm:p-8">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">
+                    External Customer Sale
+                  </p>
+                  <h3 className="mt-1 text-2xl font-black text-slate-950">
+                    VPN Key ထုတ်မည်
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Telegram Bot မသုံးသော customer အတွက် နာမည်နှင့်တကွ Key
+                    ထုတ်ပြီး database ထဲတွင် သိမ်းပါမည်။
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsExternalKeyModalOpen(false)}
+                  className="rounded-full p-2 text-slate-400 hover:bg-slate-100"
+                >
+                  <X />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto p-6 sm:p-8 custom-scrollbar">
+                <form
+                  onSubmit={generateExternalVpnKey}
+                  className="grid gap-4 sm:grid-cols-2"
+                >
+                  <label className="space-y-2">
+                    <span className="text-sm font-black text-slate-700">
+                      Customer Name
+                    </span>
+                    <input
+                      required
+                      minLength={2}
+                      maxLength={100}
+                      value={externalKeyForm.customerName}
+                      onChange={(event) =>
+                        setExternalKeyForm((current) => ({
+                          ...current,
+                          customerName: event.target.value,
+                        }))
+                      }
+                      placeholder="ဥပမာ — Ko Aung"
+                      className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-3.5 font-semibold outline-none focus:border-emerald-500"
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-sm font-black text-slate-700">
+                      VPN Package
+                    </span>
+                    <select
+                      required
+                      value={externalKeyForm.productId}
+                      onChange={(event) =>
+                        setExternalKeyForm((current) => ({
+                          ...current,
+                          productId: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-3.5 font-semibold outline-none focus:border-emerald-500"
+                    >
+                      <option value="">Package ရွေးပါ</option>
+                      {outlineVpnProducts.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.name} —{" "}
+                          {Number(product.price).toLocaleString()} MMK
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={
+                      generatingExternalKey || !outlineVpnProducts.length
+                    }
+                    className="sm:col-span-2 flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-4 font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {generatingExternalKey ? (
+                      <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <Key size={20} />
+                    )}
+                    Generate & Save Key
+                  </button>
+                </form>
+
+                {externalKeyResult && (
+                  <div className="mt-5 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+                    <p className="font-black text-emerald-800">
+                      ✅ {externalKeyResult.customerName} အတွက် Key
+                      ထုတ်ပြီးပါပြီ
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-700">
+                      {externalKeyResult.productName} • Expiry:{" "}
+                      {externalKeyResult.expiresAt
+                        ? new Date(externalKeyResult.expiresAt).toLocaleString()
+                        : "No expiry"}
+                    </p>
+                    <div className="mt-3 flex items-start gap-2 rounded-2xl bg-slate-950 p-4 text-white">
+                      <code className="min-w-0 flex-1 break-all text-xs leading-5 text-cyan-200">
+                        {externalKeyResult.key}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => copyText(externalKeyResult.key)}
+                        className="shrink-0 rounded-xl bg-white/10 p-2 hover:bg-white/20"
+                      >
+                        <Copy size={18} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-7">
+                  <h4 className="font-black text-slate-900">
+                    Recent External VPN Keys
+                  </h4>
+                  <div className="mt-3 space-y-3">
+                    {externalKeyHistory.length ? (
+                      externalKeyHistory.map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <p className="font-black text-slate-900">
+                                {item.externalCustomerName}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {item.product.name} •{" "}
+                                {Number(item.amount).toLocaleString()} MMK •{" "}
+                                {new Date(item.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+                            <span
+                              className={`rounded-full px-3 py-1 text-[10px] font-black ${item.vpnKeyDeletedAt ? "bg-rose-100 text-rose-700" : item.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
+                            >
+                              {item.vpnKeyDeletedAt ? "DELETED" : item.status}
+                            </span>
+                          </div>
+                          {item.key && !item.vpnKeyDeletedAt && (
+                            <button
+                              type="button"
+                              onClick={() => copyText(item.key)}
+                              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white"
+                            >
+                              <Copy size={14} /> Copy Key
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-500">
+                        External customer key history မရှိသေးပါ။
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
