@@ -39,6 +39,18 @@ export default function BusinessAnalytics() {
     return <div className="rounded-xl bg-red-50 p-5 text-red-700">{error}</div>;
   if (!data) return <div className="p-5">တင်နေသည်…</div>;
 
+  const usesCalendarMonth = data.periods?.monthly === "CALENDAR_MONTH_TO_DATE";
+  const monthlyLabel = usesCalendarMonth ? "ယခုလ" : "၃၀ ရက်";
+  const monthlyPeriodNote = usesCalendarMonth
+    ? "Myanmar time • လဆန်း ၁ ရက်မှ ယနေ့အထိ"
+    : "နောက်ဆုံး ၃၀ ရက်";
+  const monthlyGrossRevenue =
+    data.finance?.grossRevenueMonthToDateMMK ??
+    data.finance?.grossRevenue30DaysMMK;
+  const monthlyRevenueAfterServerCost =
+    data.finance?.revenueAfterServerCostMonthToDateMMK ??
+    data.finance?.revenueAfterServerCost30DaysMMK;
+
   const cards = [
     {
       label: "လုပ်ငန်းဝင်ငွေ (၂၄ နာရီ)",
@@ -51,14 +63,14 @@ export default function BusinessAnalytics() {
       note: `${formatNumber(data.revenue.weeklyOrders)} orders • product အားလုံး`,
     },
     {
-      label: "လုပ်ငန်းဝင်ငွေ (၃၀ ရက်)",
+      label: `လုပ်ငန်းဝင်ငွေ (${monthlyLabel})`,
       value: formatMoney(data.revenue.monthlyMMK),
-      note: `${formatNumber(data.revenue.monthlyOrders)} orders • product အားလုံး`,
+      note: `${formatNumber(data.revenue.monthlyOrders)} orders • ${monthlyPeriodNote}`,
     },
     {
-      label: "Gross Revenue (၃၀ ရက်)",
-      value: formatMoney(data.finance?.grossRevenue30DaysMMK),
-      note: "Completed orders အားလုံး၏ ရောင်းရငွေစုစုပေါင်း",
+      label: `Gross Revenue (${monthlyLabel})`,
+      value: formatMoney(monthlyGrossRevenue),
+      note: `Completed orders အားလုံး • ${monthlyPeriodNote}`,
     },
     {
       label: "Server Cost (တစ်လ)",
@@ -66,14 +78,14 @@ export default function BusinessAnalytics() {
       note: `$${formatNumber(data.finance?.serverMonthlyCostUSD)} × ${formatNumber(data.finance?.usdToMmkRate)} MMK`,
     },
     {
-      label: "Server Cost နှုတ်ပြီးရငွေ (၃၀ ရက်)",
-      value: formatMoney(data.finance?.revenueAfterServerCost30DaysMMK),
-      note: "Supplier/API/payment စရိတ်များ မနှုတ်ရသေးပါ",
+      label: `Server Cost နှုတ်ပြီးရငွေ (${monthlyLabel})`,
+      value: formatMoney(monthlyRevenueAfterServerCost),
+      note: `${monthlyPeriodNote} • Supplier/API/payment စရိတ်များ မနှုတ်ရသေးပါ`,
     },
     {
-      label: "VPN ဝင်ငွေ (၃၀ ရက်)",
+      label: `VPN ဝင်ငွေ (${monthlyLabel})`,
       value: formatMoney(data.vpnRevenue?.monthlyMMK),
-      note: `${formatNumber(data.vpnRevenue?.monthlyOrders)} retail + reseller orders`,
+      note: `${formatNumber(data.vpnRevenue?.monthlyOrders)} orders • ${monthlyPeriodNote}`,
     },
     {
       label: "Trial → Paid VPN",
@@ -125,7 +137,11 @@ export default function BusinessAnalytics() {
           ဝင်ငွေ၊ VPN conversion၊ customer retention နှင့် reseller performance
         </p>
         <p className="mt-1 text-xs text-gray-400">
-          နောက်ဆုံးတွက်ချက်ချိန်: {new Date(data.generatedAt).toLocaleString()}
+          နောက်ဆုံးတွက်ချက်ချိန်:{" "}
+          {new Date(data.generatedAt).toLocaleString("en-GB", {
+            timeZone: "Asia/Yangon",
+          })}{" "}
+          MMT
         </p>
       </div>
 
@@ -260,10 +276,12 @@ export default function BusinessAnalytics() {
       </section>
 
       <section className="rounded-xl bg-white p-5 shadow">
-        <h2 className="mb-1 text-xl font-bold">Package ရောင်းအား (၃၀ ရက်)</h2>
+        <h2 className="mb-1 text-xl font-bold">
+          Package ရောင်းအား ({monthlyLabel})
+        </h2>
         <p className="mb-4 text-sm text-gray-500">
           Completed order များကို payment approve အချိန်အလိုက်တွက်ထားသည်။
-          အဟောင်းများမှာ order created time ကိုအသုံးပြုသည်။
+          အဟောင်းများမှာ order created time ကိုအသုံးပြုသည်။ {monthlyPeriodNote}။
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -292,7 +310,9 @@ export default function BusinessAnalytics() {
               {data.packages.length === 0 && (
                 <tr>
                   <td className="p-4 text-gray-500" colSpan="5">
-                    ပြီးခဲ့သည့် ၃၀ ရက်အတွင်း completed order မရှိပါ။
+                    {usesCalendarMonth
+                      ? "ယခုလအတွင်း completed order မရှိပါ။"
+                      : "ပြီးခဲ့သည့် ၃၀ ရက်အတွင်း completed order မရှိပါ။"}
                   </td>
                 </tr>
               )}

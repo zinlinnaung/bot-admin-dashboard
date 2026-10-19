@@ -117,7 +117,7 @@ export default function Dashboard() {
           color="bg-blue-600"
         />
         <StatCard
-          title="Monthly Gross Revenue"
+          title="Monthly Gross (1st–Today)"
           value={`${Number(stats.monthlyRevenue || 0).toLocaleString()} MMK`}
           icon={TrendingUp}
           color="bg-violet-600"
@@ -135,7 +135,7 @@ export default function Dashboard() {
           color="bg-rose-600"
         />
         <StatCard
-          title="After Server Cost (Month)"
+          title="After Server Cost (1st–Today)"
           value={`${Number(stats.monthlyRevenueAfterServerCost || 0).toLocaleString()} MMK`}
           icon={DollarSign}
           color="bg-amber-600"
