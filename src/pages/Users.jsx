@@ -17,6 +17,7 @@ import {
   Send,
   RefreshCw,
   ReceiptText,
+  ShieldOff,
 } from "lucide-react";
 
 export default function UsersDashboard() {
@@ -35,6 +36,9 @@ export default function UsersDashboard() {
   const [detailsError, setDetailsError] = useState("");
   const [customerMessage, setCustomerMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [revokingPurchaseId, setRevokingPurchaseId] = useState(null);
+  const [loadingProofId, setLoadingProofId] = useState(null);
+  const [paymentProofPreview, setPaymentProofPreview] = useState(null);
 
   // Search and Pagination state
   const [searchTerm, setSearchTerm] = useState("");
@@ -106,10 +110,73 @@ export default function UsersDashboard() {
   };
 
   const closeCustomer = () => {
+    if (paymentProofPreview?.url) {
+      URL.revokeObjectURL(paymentProofPreview.url);
+    }
     setSelectedCustomer(null);
     setCustomerDetails(null);
     setDetailsError("");
     setCustomerMessage("");
+    setPaymentProofPreview(null);
+  };
+
+  const closePaymentProof = () => {
+    if (paymentProofPreview?.url) {
+      URL.revokeObjectURL(paymentProofPreview.url);
+    }
+    setPaymentProofPreview(null);
+  };
+
+  const viewPaymentProof = async (purchaseId) => {
+    setLoadingProofId(purchaseId);
+    try {
+      const response = await axios.get(
+        `${API_URL}/vpn/purchases/${purchaseId}/payment-proof`,
+        { responseType: "blob" },
+      );
+      if (paymentProofPreview?.url) {
+        URL.revokeObjectURL(paymentProofPreview.url);
+      }
+      setPaymentProofPreview({
+        purchaseId,
+        url: URL.createObjectURL(response.data),
+      });
+    } catch (err) {
+      alert(
+        err.response?.data?.message ||
+          "ငွေလွှဲပြေစာကို ဖွင့်၍မရပါ။ Telegram file သက်တမ်းကုန်နေနိုင်ပါသည်။",
+      );
+    } finally {
+      setLoadingProofId(null);
+    }
+  };
+
+  const revokeInvalidPayment = async (purchase) => {
+    const confirmed = window.confirm(
+      `Order #${purchase.id} ၏ ငွေပေးချေမှု မမှန်ကြောင်း အတည်ပြုပါသလား?\n\nဆက်လုပ်ပါက Outline VPN key ကို ချက်ချင်းပိတ်သိမ်းပြီး customer ထံ အသိပေးစာပို့ပါမည်။ Database မှ order နှင့် key မှတ်တမ်းကို မဖျက်ပါ။`,
+    );
+    if (!confirmed) return;
+
+    setRevokingPurchaseId(purchase.id);
+    try {
+      const response = await axios.post(
+        `${API_URL}/vpn/purchases/${purchase.id}/revoke-invalid-payment`,
+      );
+      closePaymentProof();
+      if (selectedCustomer) await openCustomer(selectedCustomer);
+      alert(
+        response.data.notificationSent
+          ? "VPN key ကို ပိတ်သိမ်းပြီး customer ထံ အသိပေးစာပို့ပြီးပါပြီ။"
+          : "VPN key ကို ပိတ်သိမ်းပြီးပါပြီ။ Customer ထံ message ပို့မအောင်မြင်သဖြင့် Admin မှ ဆက်သွယ်ပေးပါ။",
+      );
+    } catch (err) {
+      alert(
+        err.response?.data?.message ||
+          "VPN key ပိတ်သိမ်းမှု မအောင်မြင်ပါ။ ထပ်မနှိပ်မီ server status စစ်ဆေးပါ။",
+      );
+    } finally {
+      setRevokingPurchaseId(null);
+    }
   };
 
   const sendCustomerMessage = async () => {
@@ -161,6 +228,8 @@ export default function UsersDashboard() {
   };
 
   const vpnState = (purchase) => {
+    if (purchase.vpnKeyDeletionReason === "INVALID_PAYMENT")
+      return "Revoked — Invalid payment";
     if (purchase.vpnKeyDeletedAt || purchase.deletion) return "Deleted/Ended";
     if (purchase.expiresAt && new Date(purchase.expiresAt) < new Date())
       return "Expired";
@@ -615,6 +684,85 @@ export default function UsersDashboard() {
                                       {formatDate(purchase.deletion.deletedAt)}
                                     </span>
                                   )}
+                                </div>
+                              )}
+                              {purchase.product?.category === "VPN" &&
+                                purchase.hasPaymentProof && (
+                                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                                    {purchase.autoApproved && (
+                                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
+                                        Auto-approved
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        viewPaymentProof(purchase.id)
+                                      }
+                                      disabled={loadingProofId === purchase.id}
+                                      className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+                                    >
+                                      {loadingProofId === purchase.id ? (
+                                        <Loader2
+                                          className="animate-spin"
+                                          size={15}
+                                        />
+                                      ) : (
+                                        <Eye size={15} />
+                                      )}
+                                      ငွေလွှဲပြေစာကြည့်မည်
+                                    </button>
+                                    {purchase.status === "COMPLETED" &&
+                                      purchase.outlineKeyId &&
+                                      !purchase.vpnKeyDeletedAt && (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            revokeInvalidPayment(purchase)
+                                          }
+                                          disabled={
+                                            revokingPurchaseId === purchase.id
+                                          }
+                                          className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50"
+                                        >
+                                          {revokingPurchaseId ===
+                                          purchase.id ? (
+                                            <Loader2
+                                              className="animate-spin"
+                                              size={15}
+                                            />
+                                          ) : (
+                                            <ShieldOff size={15} />
+                                          )}
+                                          မမှန်သောငွေပေးချေမှု — Key ပိတ်မည်
+                                        </button>
+                                      )}
+                                  </div>
+                                )}
+                              {paymentProofPreview?.purchaseId ===
+                                purchase.id && (
+                                <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                                  <div className="mb-2 flex items-center justify-between gap-2">
+                                    <p className="text-xs font-bold text-slate-700">
+                                      Order #{purchase.id} ငွေလွှဲပြေစာ
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={closePaymentProof}
+                                      className="rounded-lg p-1 text-slate-500 hover:bg-slate-200"
+                                    >
+                                      <X size={16} />
+                                    </button>
+                                  </div>
+                                  <img
+                                    src={paymentProofPreview.url}
+                                    alt={
+                                      "Order #" +
+                                      purchase.id +
+                                      " payment screenshot"
+                                    }
+                                    className="max-h-[520px] w-full rounded-xl object-contain"
+                                  />
                                 </div>
                               )}
                               {(purchase.playerId || purchase.nickname) && (

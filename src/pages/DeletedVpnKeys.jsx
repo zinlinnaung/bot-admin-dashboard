@@ -70,7 +70,11 @@ export default function DeletedVpnKeys() {
                   <td className="p-4 font-semibold">{item.productName}</td>
                   <td className="p-4 font-mono text-xs">{item.outlineKeyId}</td>
                   <td className="p-4">
-                    {item.reason === "EXPIRED" ? "Expired" : "Data Full"}
+                    {item.reason === "EXPIRED"
+                      ? "Expired"
+                      : item.reason === "INVALID_PAYMENT"
+                        ? "Incorrect Payment"
+                        : "Data Full"}
                   </td>
                   <td className="p-4">{formatBytes(item.usageBytes)}</td>
                   <td className="p-4">
