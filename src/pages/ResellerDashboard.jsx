@@ -14,15 +14,54 @@ export default function ResellerDashboard() {
   const [label, setLabel] = useState("");
   const [retailPrice, setRetailPrice] = useState(4000);
   const [newKey, setNewKey] = useState("");
+  const [usageLoading, setUsageLoading] = useState(false);
+  const [usageError, setUsageError] = useState("");
 
-  const headers = { "X-Telegram-Init-Data": tg?.initData || "" };
+  const telegramInitData = tg?.initData || "";
+  const loadUsage = useCallback(async () => {
+    setUsageLoading(true);
+    setUsageError("");
+    try {
+      const response = await axios.get(`${API_BASE_URL}/reseller/usage`, {
+        headers: { "X-Telegram-Init-Data": telegramInitData },
+      });
+      const updates = new Map(
+        (response.data.orders || []).map((order) => [order.id, order.usage]),
+      );
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              usageMeta: {
+                cachedAt: response.data.cachedAt,
+                refreshing: false,
+              },
+              orders: current.orders.map((order) =>
+                updates.has(order.id)
+                  ? { ...order, usage: updates.get(order.id) }
+                  : order,
+              ),
+            }
+          : current,
+      );
+      if (!response.data.available) {
+        setUsageError("Usage အချက်အလက်ကို ယာယီမရနိုင်သေးပါ။");
+      }
+    } catch {
+      setUsageError("Usage အချက်အလက်ကို ယာယီမရနိုင်သေးပါ။");
+    } finally {
+      setUsageLoading(false);
+    }
+  }, [telegramInitData]);
+
   const load = useCallback(async () => {
     try {
       setError("");
       const response = await axios.get(`${API_BASE_URL}/reseller/me`, {
-        headers,
+        headers: { "X-Telegram-Init-Data": telegramInitData },
       });
       setData(response.data);
+      if (response.data.account?.status === "ACTIVE") void loadUsage();
     } catch (e) {
       const message = e.response?.data?.message;
       setError(
@@ -32,20 +71,20 @@ export default function ResellerDashboard() {
               "Reseller အချက်အလက် မရယူနိုင်ပါ။ ခဏစောင့်ပြီး ပြန်စမ်းပါ။",
       );
     }
-  }, [tg?.initData]);
+  }, [loadUsage, telegramInitData]);
 
   useEffect(() => {
     tg?.ready();
     tg?.expand();
     load();
-  }, [load]);
+  }, [load, tg]);
 
   const action = async (url, body = {}) => {
     setBusy(true);
     setError("");
     try {
       const response = await axios.post(`${API_BASE_URL}${url}`, body, {
-        headers,
+        headers: { "X-Telegram-Init-Data": telegramInitData },
       });
       await load();
       return response.data;
@@ -232,6 +271,14 @@ export default function ResellerDashboard() {
               </Button>
             </Card>
             <Card title="Key ထုတ်ထားမှုမှတ်တမ်း">
+              {usageLoading && (
+                <p className="mb-3 text-xs font-bold text-blue-600">
+                  Data usage ကို နောက်ကွယ်တွင် update လုပ်နေသည်…
+                </p>
+              )}
+              {usageError && !usageLoading && (
+                <p className="mb-3 text-xs text-amber-700">{usageError}</p>
+              )}
               <div className="space-y-3">
                 {data.orders.length === 0 && (
                   <p className="text-sm text-slate-500">မှတ်တမ်းမရှိသေးပါ။</p>
@@ -294,7 +341,9 @@ export default function ResellerDashboard() {
                           </>
                         ) : (
                           <p className="text-xs text-slate-500">
-                            Usage အချက်အလက်ကို ယာယီမရနိုင်သေးပါ။
+                            {usageLoading
+                              ? "Usage အချက်အလက် ရယူနေသည်…"
+                              : "Usage အချက်အလက်ကို ယာယီမရနိုင်သေးပါ။"}
                           </p>
                         )}
                       </div>
