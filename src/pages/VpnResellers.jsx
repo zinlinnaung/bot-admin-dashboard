@@ -7,6 +7,7 @@ const money = (value) => `${Number(value || 0).toLocaleString()} MMK`;
 export default function VpnResellers() {
   const [data, setData] = useState({ summary: {}, accounts: [] });
   const [error, setError] = useState("");
+  const [accessLink, setAccessLink] = useState(null);
   const load = () =>
     axios
       .get(`${API_BASE_URL}/admin/vpn-resellers`)
@@ -33,6 +34,37 @@ export default function VpnResellers() {
       setError(e.response?.data?.message || "ပြင်ဆင်မှု မအောင်မြင်ပါ။");
     }
   };
+  const createAccessLink = async (account) => {
+    setError("");
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/admin/vpn-resellers/${account.id}/access-links`,
+        { days: 7 },
+      );
+      setAccessLink({ ...response.data, account });
+      await navigator.clipboard?.writeText(response.data.url);
+    } catch (e) {
+      setError(e.response?.data?.message || "External link မထုတ်နိုင်ပါ။");
+    }
+  };
+  const revokeAccessLinks = async (account) => {
+    if (
+      !window.confirm(
+        `@${account.user.username || account.id} ၏ external link အားလုံးကို ပိတ်မည်လား?`,
+      )
+    )
+      return;
+    setError("");
+    try {
+      const response = await axios.delete(
+        `${API_BASE_URL}/admin/vpn-resellers/${account.id}/access-links`,
+      );
+      if (accessLink?.account.id === account.id) setAccessLink(null);
+      window.alert(`External link ${response.data.revoked} ခု ပိတ်ပြီးပါပြီ။`);
+    } catch (e) {
+      setError(e.response?.data?.message || "External link မပိတ်နိုင်ပါ။");
+    }
+  };
   return (
     <div className="space-y-6">
       <div>
@@ -43,6 +75,29 @@ export default function VpnResellers() {
       </div>
       {error && (
         <div className="rounded-xl bg-red-50 p-4 text-red-700">{error}</div>
+      )}
+      {accessLink && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+          <p className="font-black text-blue-950">
+            @{accessLink.account.user.username || accessLink.account.id} အတွက်
+            External Dashboard Link
+          </p>
+          <p className="mt-1 text-xs text-blue-700">
+            သက်တမ်းကုန်ချိန်:{" "}
+            {new Date(accessLink.expiresAt).toLocaleString("my-MM")}
+          </p>
+          <textarea
+            className="mt-3 h-24 w-full rounded-xl border border-blue-200 bg-white p-3 text-xs"
+            readOnly
+            value={accessLink.url}
+          />
+          <button
+            className="mt-2 rounded-xl bg-blue-700 px-4 py-2 font-bold text-white"
+            onClick={() => navigator.clipboard.writeText(accessLink.url)}
+          >
+            Link Copy
+          </button>
+        </div>
       )}
       <div className="grid gap-4 md:grid-cols-4">
         {Object.entries(data.summary || {}).map(([key, value]) => (
@@ -65,7 +120,14 @@ export default function VpnResellers() {
           </thead>
           <tbody>
             {data.accounts.map((a) => (
-              <ResellerRow key={a.id} account={a} post={post} patch={patch} />
+              <ResellerRow
+                key={a.id}
+                account={a}
+                post={post}
+                patch={patch}
+                createAccessLink={createAccessLink}
+                revokeAccessLinks={revokeAccessLinks}
+              />
             ))}
           </tbody>
         </table>
@@ -74,7 +136,13 @@ export default function VpnResellers() {
   );
 }
 
-function ResellerRow({ account: a, post, patch }) {
+function ResellerRow({
+  account: a,
+  post,
+  patch,
+  createAccessLink,
+  revokeAccessLinks,
+}) {
   const [wholesalePrice, setWholesale] = useState(a.wholesalePrice);
   const [suggestedRetailPrice, setRetail] = useState(a.suggestedRetailPrice);
   const [dailyKeyLimit, setLimit] = useState(a.dailyKeyLimit);
@@ -132,16 +200,30 @@ function ResellerRow({ account: a, post, patch }) {
           </>
         )}
         {a.status === "ACTIVE" && (
-          <button
-            className="rounded bg-amber-600 px-3 py-2 text-white"
-            onClick={() =>
-              patch(`/admin/vpn-resellers/${a.id}/status`, {
-                status: "SUSPENDED",
-              })
-            }
-          >
-            Suspend
-          </button>
+          <>
+            <button
+              className="rounded bg-violet-600 px-3 py-2 text-white"
+              onClick={() => createAccessLink(a)}
+            >
+              External Link
+            </button>
+            <button
+              className="rounded bg-slate-600 px-3 py-2 text-white"
+              onClick={() => revokeAccessLinks(a)}
+            >
+              Revoke Links
+            </button>
+            <button
+              className="rounded bg-amber-600 px-3 py-2 text-white"
+              onClick={() =>
+                patch(`/admin/vpn-resellers/${a.id}/status`, {
+                  status: "SUSPENDED",
+                })
+              }
+            >
+              Suspend
+            </button>
+          </>
         )}
         {a.status === "SUSPENDED" && (
           <button

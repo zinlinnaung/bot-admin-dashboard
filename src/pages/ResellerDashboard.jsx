@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../api-auth";
 
@@ -33,6 +33,8 @@ export default function ResellerDashboard() {
   const [newKey, setNewKey] = useState("");
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageError, setUsageError] = useState("");
+  const usageRetryCount = useRef(0);
+  const usageRetryTimer = useRef(null);
   const [externalAccessToken] = useState(takeExternalAccessToken);
 
   const telegramInitData = tg?.initData || "";
@@ -71,7 +73,15 @@ export default function ResellerDashboard() {
           : current,
       );
       if (!response.data.available) {
-        setUsageError("Usage အချက်အလက်ကို ယာယီမရနိုင်သေးပါ။");
+        if (response.data.refreshing && usageRetryCount.current < 3) {
+          usageRetryCount.current += 1;
+          clearTimeout(usageRetryTimer.current);
+          usageRetryTimer.current = setTimeout(() => void loadUsage(), 2500);
+        } else {
+          setUsageError("Usage အချက်အလက်ကို ယာယီမရနိုင်သေးပါ။");
+        }
+      } else {
+        usageRetryCount.current = 0;
       }
     } catch {
       setUsageError("Usage အချက်အလက်ကို ယာယီမရနိုင်သေးပါ။");
@@ -88,7 +98,14 @@ export default function ResellerDashboard() {
         timeout: 15000,
       });
       setData(response.data);
-      if (response.data.account?.status === "ACTIVE") void loadUsage();
+      if (
+        response.data.account?.status === "ACTIVE" &&
+        response.data.orders?.some(
+          (order) => order.status === "COMPLETED" && order.outlineKeyId,
+        )
+      ) {
+        void loadUsage();
+      }
     } catch (e) {
       const message = e.response?.data?.message;
       setError(
@@ -107,6 +124,13 @@ export default function ResellerDashboard() {
     tg?.expand();
     load();
   }, [load, tg]);
+
+  useEffect(
+    () => () => {
+      clearTimeout(usageRetryTimer.current);
+    },
+    [],
+  );
 
   const action = async (url, body = {}) => {
     setBusy(true);
@@ -210,9 +234,6 @@ export default function ResellerDashboard() {
         )}
         {account?.status === "APPROVED" && (
           <Card title="လျှောက်လွှာ အတည်ပြုပြီးပါပြီ">
-            <p>
-              လက်ရှိ main wallet: <b>{money(data.user.mainBalance)}</b>
-            </p>
             <p>
               Reseller wallet စဖွင့်ရန်:{" "}
               <b>{money(account.openingBalanceRequired)}</b>
