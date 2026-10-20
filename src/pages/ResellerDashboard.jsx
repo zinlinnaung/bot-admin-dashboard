@@ -49,6 +49,7 @@ export default function ResellerDashboard() {
     try {
       const response = await axios.get(`${API_BASE_URL}/reseller/usage`, {
         headers: resellerAuthHeaders(),
+        timeout: 15000,
       });
       const updates = new Map(
         (response.data.orders || []).map((order) => [order.id, order.usage]),
@@ -84,6 +85,7 @@ export default function ResellerDashboard() {
       setError("");
       const response = await axios.get(`${API_BASE_URL}/reseller/me`, {
         headers: resellerAuthHeaders(),
+        timeout: 15000,
       });
       setData(response.data);
       if (response.data.account?.status === "ACTIVE") void loadUsage();
@@ -168,6 +170,14 @@ export default function ResellerDashboard() {
         {error && (
           <div className="rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700">
             {error}
+            {!data && (
+              <button
+                className="mt-3 block rounded-xl bg-red-700 px-4 py-2 text-white"
+                onClick={load}
+              >
+                ပြန်စမ်းမည်
+              </button>
+            )}
           </div>
         )}
         {!account && (
