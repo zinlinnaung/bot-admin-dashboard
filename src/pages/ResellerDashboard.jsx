@@ -6,6 +6,23 @@ const money = (value) => `${Number(value || 0).toLocaleString()} MMK`;
 const idempotencyKey = (prefix) =>
   `${prefix}:${window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "web"}:${crypto.randomUUID()}`;
 
+const takeExternalAccessToken = () => {
+  const params = new URLSearchParams(window.location.search);
+  const linkToken = params.get("access");
+  if (linkToken) {
+    sessionStorage.setItem("resellerAccessToken", linkToken);
+    params.delete("access");
+    const query = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+    );
+    return linkToken;
+  }
+  return sessionStorage.getItem("resellerAccessToken") || "";
+};
+
 export default function ResellerDashboard() {
   const tg = window.Telegram?.WebApp;
   const [data, setData] = useState(null);
@@ -16,14 +33,22 @@ export default function ResellerDashboard() {
   const [newKey, setNewKey] = useState("");
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageError, setUsageError] = useState("");
+  const [externalAccessToken] = useState(takeExternalAccessToken);
 
   const telegramInitData = tg?.initData || "";
+  const resellerAuthHeaders = useCallback(
+    () =>
+      telegramInitData
+        ? { "X-Telegram-Init-Data": telegramInitData }
+        : { "X-Reseller-Access-Token": externalAccessToken },
+    [externalAccessToken, telegramInitData],
+  );
   const loadUsage = useCallback(async () => {
     setUsageLoading(true);
     setUsageError("");
     try {
       const response = await axios.get(`${API_BASE_URL}/reseller/usage`, {
-        headers: { "X-Telegram-Init-Data": telegramInitData },
+        headers: resellerAuthHeaders(),
       });
       const updates = new Map(
         (response.data.orders || []).map((order) => [order.id, order.usage]),
@@ -52,13 +77,13 @@ export default function ResellerDashboard() {
     } finally {
       setUsageLoading(false);
     }
-  }, [telegramInitData]);
+  }, [resellerAuthHeaders]);
 
   const load = useCallback(async () => {
     try {
       setError("");
       const response = await axios.get(`${API_BASE_URL}/reseller/me`, {
-        headers: { "X-Telegram-Init-Data": telegramInitData },
+        headers: resellerAuthHeaders(),
       });
       setData(response.data);
       if (response.data.account?.status === "ACTIVE") void loadUsage();
@@ -66,12 +91,14 @@ export default function ResellerDashboard() {
       const message = e.response?.data?.message;
       setError(
         message === "Authentication required"
-          ? "Telegram authentication သက်တမ်းကုန်နေပါသည်။ ဒီစာမျက်နှာကိုပိတ်ပြီး bot ရှိ 🤝 VPN Reseller Program မှ ပြန်ဖွင့်ပါ။"
+          ? externalAccessToken
+            ? "External dashboard link သက်တမ်းကုန်သွားပါပြီ။ Link အသစ်ရယူရန် Admin ကို ဆက်သွယ်ပါ။"
+            : "Telegram authentication သက်တမ်းကုန်နေပါသည်။ ဒီစာမျက်နှာကိုပိတ်ပြီး bot ရှိ 🤝 VPN Reseller Program မှ ပြန်ဖွင့်ပါ။"
           : message ||
               "Reseller အချက်အလက် မရယူနိုင်ပါ။ ခဏစောင့်ပြီး ပြန်စမ်းပါ။",
       );
     }
-  }, [loadUsage, telegramInitData]);
+  }, [externalAccessToken, loadUsage, resellerAuthHeaders]);
 
   useEffect(() => {
     tg?.ready();
@@ -84,7 +111,7 @@ export default function ResellerDashboard() {
     setError("");
     try {
       const response = await axios.post(`${API_BASE_URL}${url}`, body, {
-        headers: { "X-Telegram-Init-Data": telegramInitData },
+        headers: resellerAuthHeaders(),
       });
       await load();
       return response.data;
@@ -310,7 +337,8 @@ export default function ResellerDashboard() {
                                 Data အသုံးပြုမှု
                               </span>
                               <span className="font-black text-slate-900">
-                                {order.usage.usageGB} GB / {order.usage.limitGB} GB
+                                {order.usage.usageGB} GB / {order.usage.limitGB}{" "}
+                                GB
                               </span>
                             </div>
                             <div
@@ -335,7 +363,9 @@ export default function ResellerDashboard() {
                               />
                             </div>
                             <div className="mt-2 flex justify-between text-xs text-slate-600">
-                              <span>{order.usage.usagePercent || 0}% သုံးပြီး</span>
+                              <span>
+                                {order.usage.usagePercent || 0}% သုံးပြီး
+                              </span>
                               <span>{order.usage.remainingGB} GB ကျန်</span>
                             </div>
                           </>
